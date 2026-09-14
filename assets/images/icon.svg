@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <pattern id="g" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#5EE7FF" stroke-opacity="0.10" stroke-width="2"/>
+    </pattern>
+    <radialGradient id="glow" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#1B2A4D"/>
+      <stop offset="1" stop-color="#070B16"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <!-- exploded layers: an app pulled apart -->
+  <g stroke-width="26" stroke-linejoin="round" fill="none">
+    <path d="M512 196 L812 346 L512 496 L212 346 Z" stroke="#5EE7FF" fill="#5EE7FF" fill-opacity="0.16"/>
+    <path d="M212 512 L512 662 L812 512" stroke="#7CFFB2"/>
+    <path d="M212 512 L512 362" stroke="#7CFFB2" stroke-opacity="0.0"/>
+    <path d="M212 668 L512 818 L812 668" stroke="#A78BFA"/>
+  </g>
+  <g fill="#FFC857">
+    <circle cx="512" cy="346" r="34"/>
+  </g>
+  <g stroke="#5EE7FF" stroke-width="10" stroke-dasharray="4 26" stroke-linecap="round">
+    <path d="M212 360 V500"/><path d="M812 360 V500"/><path d="M212 526 V656"/><path d="M812 526 V656"/>
+  </g>
+</svg>
