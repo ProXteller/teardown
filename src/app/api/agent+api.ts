@@ -5,6 +5,7 @@ import * as z from 'zod/v4';
 import type { StackLayer, Teardown } from '@/data/types';
 import type { AgentAction, AgentReply, AgentRequest, TabKey } from '@/lib/agent/types';
 import { parseTweaks, setEditableText, setTweak } from '@/lib/playground';
+import { TRACK_IDS } from '@/lib/roadmap/types';
 
 /**
  * "Ask Teardown" with Claude: answers questions about one teardown and drives the UI through tools.
@@ -24,7 +25,7 @@ const MAX_MESSAGE_CHARS = 8000;
 const MAX_PLAYGROUND_CHARS = 100_000;
 const MAX_ACTIONS = 30;
 
-const TABS = ['story', 'stack', 'system', 'code', 'play', 'learn'] as const satisfies readonly TabKey[];
+const TABS = ['story', 'stack', 'system', 'code', 'play', 'learn', 'roadmap'] as const satisfies readonly TabKey[];
 const TAB_NAMES: Record<TabKey, string> = {
   story: 'Story',
   stack: 'Stack',
@@ -32,6 +33,7 @@ const TAB_NAMES: Record<TabKey, string> = {
   code: 'Code',
   play: 'Playground',
   learn: 'Learn',
+  roadmap: 'Roadmap',
 };
 const LAYERS = ['Frontend', 'Mobile', 'Backend', 'Data', 'Infrastructure', 'AI / ML', 'DevOps'] as const satisfies readonly StackLayer[];
 
@@ -331,6 +333,22 @@ function createSession(t: Teardown, startCode: string) {
         if (!concept) throw new Error(`No concept "${clip(term, 80)}". Terms: ${t.concepts.map((c) => c.term).join(', ')}`);
         record({ type: 'show_concept', term: concept.term });
         return `Showing the concept "${concept.term}".`;
+      },
+    }),
+    betaZodTool({
+      name: 'open_roadmap',
+      description:
+        'Open the Roadmap tab: a step-by-step learning plan (with verified courses, YouTube videos and practice sites) to build an app like this one. Use it when the student asks about careers, what to learn, courses, or how to become something. Pass track when they name a path.',
+      inputSchema: z.object({
+        track: z
+          .enum(TRACK_IDS)
+          .optional()
+          .describe('software, web, mobile, cybersecurity, data-ai, cloud-devops, game, uiux, or explore for undecided students'),
+      }),
+      run: async ({ track }) => {
+        ensureRoom();
+        record(track ? { type: 'open_roadmap', track } : { type: 'open_roadmap' });
+        return track ? `Opened the ${track} roadmap.` : 'Opened the Roadmap tab (the student picks a path there).';
       },
     }),
     betaZodTool({

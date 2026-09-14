@@ -90,4 +90,12 @@ await pause(600);
 await scrollBy(560);
 await shot('08-playground-after-agent');
 
+// 8. Career roadmap: pick a path on home, then the Roadmap tab
+await open('/');
+await page.getByText('Cybersecurity', { exact: true }).first().click();
+await pause(1200);
+await open('/t/instagram?tab=roadmap', 3500);
+await scrollBy(300);
+await shot('09-career-roadmap');
+
 await browser.close();

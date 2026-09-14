@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 import type { StackLayer, Teardown } from '@/data/types';
 import type { AgentAction, TabKey } from '@/lib/agent/types';
+import { TRACK_IDS, type TrackId } from '@/lib/roadmap/types';
 import { lineText, parseTweaks, setEditableText, setTweak } from '@/lib/playground';
 
 /**
@@ -23,6 +24,8 @@ export interface Workspace {
   snippet: { id: string; rev: number } | null;
   layer: { name: StackLayer; rev: number } | null;
   concept: { term: string; rev: number } | null;
+  /** Career track the agent asked the Roadmap tab to show */
+  roadmapTrack?: TrackId;
   /** Bumped on every agent action so the screen can scroll the panel into view */
   focusRev: number;
 }
@@ -150,6 +153,12 @@ export function applyAgentActions(t: Teardown, actions: AgentAction[]): string[]
         updateWorkspace(id, withCode(t, w, undefined, { text: 'Reset to the original', detail: '' }));
         receipts.push('Reset the playground');
         break;
+      case 'open_roadmap': {
+        const track = action.track && (TRACK_IDS as readonly string[]).includes(action.track) ? action.track : undefined;
+        updateWorkspace(id, { tab: 'roadmap', ...(track ? { roadmapTrack: track } : {}) });
+        receipts.push(track ? `Opened your ${track.replace('-', ' & ')} roadmap` : 'Opened your roadmap');
+        break;
+      }
     }
   }
   if (receipts.length) updateWorkspace(id, (w) => ({ focusRev: w.focusRev + 1 }));
@@ -163,4 +172,5 @@ export const TAB_NAMES: Record<TabKey, string> = {
   code: 'Code',
   play: 'Playground',
   learn: 'Learn',
+  roadmap: 'Roadmap',
 };

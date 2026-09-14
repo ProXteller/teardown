@@ -9,9 +9,9 @@ Built at **TXST Shipaton 2026** (Texas State University, September 14, 2026), th
 
 **Team:** _Name 1_ · _Name 2_ · _Name 3_ · _Name 4_
 
-| Home | System map | Ask Teardown | Real-page playground |
+| Home | System map | Ask Teardown edits the page | Career roadmap |
 | --- | --- | --- | --- |
-| ![Home](submission/screenshots/01-home.png) | ![System map](submission/screenshots/03-system-flow.png) | ![Agent](submission/screenshots/05-agent-edits-playground.png) | ![Playground](submission/screenshots/07-real-page-playground.png) |
+| ![Home](submission/screenshots/01-home.png) | ![System map](submission/screenshots/03-system-flow.png) | ![Agent](submission/screenshots/08-playground-after-agent.png) | ![Roadmap](submission/screenshots/09-career-roadmap.png) |
 
 ---
 
@@ -43,6 +43,14 @@ from 12:10 PM; the rest of the history is the hackathon work. Everything listed 
   - It edits the playground on request ("make it dark mode", "rename the headline to Hello Bobcats").
   - It works offline with a built-in engine, tested on 228 scripted and 1,104 fuzzed prompts.
   - It uses Claude Opus 5 with tool use when `ANTHROPIC_API_KEY` is set.
+- **Career roadmaps:** pick what you want to become (software engineer, web, mobile, cybersecurity, data & AI, cloud &
+  DevOps, game dev, UI/UX, or not sure yet). Every teardown gets a **Roadmap** tab: "Build an app like Instagram as a
+  future cybersecurity engineer".
+  - Five phases: foundations, core skills, building that app's real layers, your path's lens on the app, and portfolio
+    and certifications.
+  - Checkable steps with mini projects and a capstone.
+  - **274 learning resources** (courses, YouTube videos, docs, practice sites). Every link was checked by a script, with
+    YouTube confirmed through oEmbed, and reviewed by hand.
 - **Claude-generated teardowns** (with an API key): three parallel structured-output calls grounded in the live scan. Any
   part that fails falls back to the instant teardown.
 - **Teardown Pro paywall with the RevenueCat SDK** (`src/lib/purchases.ts`, `src/app/paywall.tsx`): offerings, purchase,
@@ -60,6 +68,8 @@ from 12:10 PM; the rest of the history is the hackathon work. Everything listed 
 - Community-submitted curated teardowns with review, like a Wikipedia for app architecture.
 - Export a playground remix to CodePen or a GitHub repo.
 - Voice mode for the agent, and support for more languages.
+- Roadmap progress synced across devices, reminders, and "what to learn this week" plans.
+- Personalized roadmaps from Claude that still pick only from the verified resource library.
 
 ---
 
@@ -85,6 +95,8 @@ npx tsx scripts/validate-offline.ts                # templates, tech packs, know
 npx tsx scripts/test-quick-engine.ts --live        # instant teardowns incl. real sites (dev server running)
 npx tsx scripts/test-agent.ts                      # built-in agent: 99 cases
 npx tsx scripts/agent-battery.ts                   # built-in agent: 228 scripted + 1,104 fuzzed prompts
+npx tsx scripts/test-roadmap.ts                    # 9 career paths × 15 apps
+npx tsx scripts/verify-resources.ts                # checks every course/video/docs link is live
 node scripts/mock-anthropic-agent.mjs & npx tsx scripts/test-agent-api.ts   # Claude agent route against a mock API
 ```
 
@@ -129,6 +141,7 @@ src/components/agent/      Ask Teardown chat dock
 src/data/curated/          14 curated teardowns
 src/lib/offline/           instant engine: templates, tech packs, known products, real-page playground
 src/lib/agent/             agent contract, built-in engine, chat store
+src/lib/roadmap/           career roadmap engine; tracks in src/data/careers.ts, resources in src/data/resources/
 submission/                Shipaton submission kit (deck text, demo script, screenshots)
 ```
 

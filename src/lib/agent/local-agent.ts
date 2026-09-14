@@ -6,6 +6,7 @@
  */
 
 import type { ArchNode, CodeSample, Flow, StackLayer, Teardown } from '@/data/types';
+import type { TrackId } from '@/lib/roadmap/types';
 import { parseTweaks, setEditableText, setTweak, type Tweak } from '@/lib/playground';
 
 import type { AgentAction, AgentReply, AgentRequest } from './types';
@@ -1854,11 +1855,51 @@ const TAB_THIS = /^(explain this|what am i looking at|what('s| is) this( tab| sc
 const OVERVIEW = /\b(built with|tech stack|the stack|technolog(y|ies)|made with|tools|under the hood|how (is|was) it (built|made)|what (does|do) (it|they) (use|run on))\b/;
 const HOW_WORKS = /^how does (it|everything|the app|the site|the system) work[.!?\s]*$/;
 
+const ROADMAP =
+  /\b(road ?map|career|careers|become an?|wann?a be|want to (?:be|become|work)|learning path|study plan|what should i (?:learn|study)|how (?:do|can|should) i (?:learn|start learning|get into|become|get a job)|courses?|tutorials? (?:to|for)|(?:youtube|videos?) (?:to|for) learn|learn\b.*\b(?:on|from) youtube|resources to learn|get a job|internships?)\b/;
+
+const TRACK_WORDS: [RegExp, TrackId, string][] = [
+  [/not sure|don'?t know|undecided|explore|anything/, 'explore', 'undecided explorer'],
+  [/cyber|security|hack|pen ?test|infosec|soc analyst/, 'cybersecurity', 'cybersecurity engineer'],
+  [/data|\bai\b|machine learning|\bml\b|scien/, 'data-ai', 'data & AI specialist'],
+  [/cloud|devops|\bsre\b|infrastructure|platform engineer/, 'cloud-devops', 'cloud & DevOps engineer'],
+  [/game/, 'game', 'game developer'],
+  [/\bux\b|\bui\b|design/, 'uiux', 'product designer'],
+  [/mobile|\bios\b|android|app developer/, 'mobile', 'mobile developer'],
+  [/\bweb\b|front ?-?end|full ?-?stack/, 'web', 'web developer'],
+  [/software|back ?-?end|engineer|developer|programmer|coder/, 'software', 'software engineer'],
+];
+
+/** "I want to be a security engineer" / "what courses should I take" → the Roadmap tab. */
+function roadmapAnswer(ctx: Ctx): Draft | null {
+  const l = ctx.lower;
+  if (!ROADMAP.test(l)) return null;
+  const app = ctx.t.name;
+  const match = TRACK_WORDS.find(([re]) => re.test(l));
+  if (!match) {
+    return {
+      text: `Your **Roadmap** tab turns ${app} into a learning plan. Pick what you want to become (software engineer, web, mobile, cybersecurity, data & AI, cloud & DevOps, games or UI/UX) and you’ll get steps from the basics to building ${app}’s real layers, each with checked courses, YouTube videos and practice sites.`,
+      actions: [{ type: 'open_roadmap' }],
+      hint: { kind: 'question' },
+      suggestions: ['Make me a cybersecurity roadmap', 'I want to be a software engineer', 'Roadmap for data & AI', `What is ${app} built with?`],
+    };
+  }
+  const [, track, role] = match;
+  return {
+    text: `Here’s your path to build an app like ${app} as a future **${role}**:\n1. Foundations\n2. Core skills for your path\n3. Build ${app}’s real layers, one at a time\n4. See ${app} through your path’s lens\n5. Portfolio and first job\nEvery step has checked links to courses, YouTube videos and practice sites, and you can tick steps off as you go.`,
+    actions: [{ type: 'open_roadmap', track }],
+    hint: { kind: 'question' },
+    suggestions: [track === 'cybersecurity' ? 'I want to be a data scientist instead' : 'What about cybersecurity?', `What database does ${app} use?`, 'How do I build my own?'],
+  };
+}
+
 function answer(ctx: Ctx): Draft {
   const l = ctx.lower;
   const li = ctx.lowerIt;
   if (!l.trim() || HELP.test(li) || (GREETING.test(l) && countWords(l) <= 4)) return helpAnswer(ctx, GREETING.test(l));
   if (CONTROLS.test(l)) return controlsReply(ctx, 'Sure!');
+  const roadmap = roadmapAnswer(ctx);
+  if (roadmap) return roadmap;
 
   const off = offTopicAnswer(ctx);
   if (off) return off;

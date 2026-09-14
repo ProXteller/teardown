@@ -227,6 +227,9 @@ function checkActions(t: Teardown, turn: Turn, p: Problem[]) {
         running = a.code;
         break;
       }
+      case 'open_roadmap':
+        if (a.track && !['software', 'web', 'mobile', 'cybersecurity', 'data-ai', 'cloud-devops', 'game', 'uiux', 'explore'].includes(a.track)) bad(`bad roadmap track ${a.track}`);
+        break;
       case 'reset_playground':
         running = t.playground.html;
         break;

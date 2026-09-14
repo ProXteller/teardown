@@ -7,6 +7,7 @@ import { AgentDock } from '@/components/agent/agent-dock';
 import { CodePanel } from '@/components/panels/code-panel';
 import { LearnPanel } from '@/components/panels/learn-panel';
 import { PlaygroundPanel } from '@/components/panels/playground-panel';
+import { RoadmapPanel } from '@/components/panels/roadmap-panel';
 import { LiveScan, StackPanel } from '@/components/panels/stack-panel';
 import { StoryPanel } from '@/components/panels/story-panel';
 import { SystemPanel } from '@/components/panels/system-panel';
@@ -34,6 +35,7 @@ const TABS: { key: TabKey; label: string; icon: IconName; part: PartName }[] = [
   { key: 'code', label: 'Code', icon: 'code-slash-outline', part: 'build' },
   { key: 'play', label: 'Playground', icon: 'color-wand-outline', part: 'build' },
   { key: 'learn', label: 'Learn', icon: 'school-outline', part: 'story' },
+  { key: 'roadmap', label: 'Roadmap', icon: 'map-outline', part: 'story' },
 ];
 
 const TIPS = [
@@ -161,6 +163,7 @@ export default function TeardownScreen() {
               {tab === 'code' && <CodePanel t={t} />}
               {tab === 'play' && <PlaygroundPanel t={t} />}
               {tab === 'learn' && <LearnPanel t={t} />}
+              {tab === 'roadmap' && <RoadmapPanel t={t} />}
               <NextTab tab={tab} onGo={setTab} color={brand} />
             </>
           )}

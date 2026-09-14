@@ -9,8 +9,9 @@
  */
 
 import type { StackLayer, Teardown } from '@/data/types';
+import type { TrackId } from '@/lib/roadmap/types';
 
-export type TabKey = 'story' | 'stack' | 'system' | 'code' | 'play' | 'learn';
+export type TabKey = 'story' | 'stack' | 'system' | 'code' | 'play' | 'learn' | 'roadmap';
 
 export type AgentAction =
   /** Switch the teardown screen to a tab */
@@ -32,7 +33,9 @@ export type AgentAction =
   /** Replace the whole playground document (must still follow PLAYGROUND_CONTRACT) */
   | { type: 'set_playground_code'; code: string; summary: string }
   /** Restore the playground to its original code */
-  | { type: 'reset_playground' };
+  | { type: 'reset_playground' }
+  /** Open the Roadmap tab, optionally for a career track (software, web, mobile, cybersecurity, data-ai, cloud-devops, game, uiux, explore) */
+  | { type: 'open_roadmap'; track?: TrackId };
 
 export interface AgentMessage {
   role: 'user' | 'assistant';

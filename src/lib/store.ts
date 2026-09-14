@@ -5,6 +5,7 @@ import { findCurated, getCurated, parseQuery, type ParsedQuery } from '@/data/ca
 import { PARTS, type BuildPartT, type PartName, type StoryPartT, type SystemPartT } from '@/data/schema';
 import type { Teardown, Tier } from '@/data/types';
 import type { ScanResult } from '@/lib/fingerprints';
+import type { TrackId } from '@/lib/roadmap/types';
 import { buildQuickTeardown, findKnownProduct, QUICK_ENGINE_VERSION, resolveDomain, type QuickMeta } from '@/lib/offline/build';
 import { engineReady, OFFLINE } from '@/lib/offline/content';
 import { PAYWALL_ENABLED } from '@/lib/purchases';
@@ -46,13 +47,17 @@ interface State {
   entries: Record<string, Entry>;
   history: HistoryItem[];
   aiCount: number;
+  /** What the student wants to become; drives the Roadmap tab */
+  career: TrackId | null;
+  /** Completed roadmap step ids, keyed by `${teardownId}:${trackId}` */
+  progress: Record<string, string[]>;
   hydrated: boolean;
 }
 
 export const FREE_AI_TEARDOWNS = 2;
 const STORAGE_KEY = 'teardown/v1';
 
-let state: State = { entries: {}, history: [], aiCount: 0, hydrated: false };
+let state: State = { entries: {}, history: [], aiCount: 0, career: null, progress: {}, hydrated: false };
 const listeners = new Set<() => void>();
 
 function setState(update: (s: State) => State) {
@@ -71,7 +76,7 @@ function persist() {
     );
     AsyncStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ entries: finished, history: state.history, aiCount: state.aiCount }),
+      JSON.stringify({ entries: finished, history: state.history, aiCount: state.aiCount, career: state.career, progress: state.progress }),
     ).catch(() => {});
   }, 400);
 }
@@ -88,6 +93,8 @@ export async function hydrate() {
       entries: { ...fresh, ...state.entries },
       history: saved.history ?? [],
       aiCount: saved.aiCount ?? 0,
+      career: saved.career ?? state.career,
+      progress: { ...(saved.progress ?? {}), ...state.progress },
       hydrated: true,
     };
   } catch {
@@ -143,6 +150,18 @@ export function recordVisit(t: Pick<Teardown, 'id' | 'name' | 'logoGlyph' | 'bra
       ...s.history.filter((h) => h.id !== t.id),
     ].slice(0, 12),
   }));
+}
+
+export function setCareer(career: TrackId | null) {
+  setState((s) => ({ ...s, career }));
+}
+
+export function toggleRoadmapStep(key: string, stepId: string) {
+  setState((s) => {
+    const done = s.progress[key] ?? [];
+    const next = done.includes(stepId) ? done.filter((d) => d !== stepId) : [...done, stepId];
+    return { ...s, progress: { ...s.progress, [key]: next } };
+  });
 }
 
 export function clearHistory() {

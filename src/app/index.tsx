@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CareerPicker } from '@/components/career-picker';
 import { Card, Chip, GridBackground, Ionicons, LogoMark, Pressy, Txt, type IconName } from '@/components/ui';
 import { C, F, MaxWidth, visibleBrand } from '@/constants/theme';
 import { CURATED, getCurated } from '@/data/catalog';
 import { PAYWALL_ENABLED, usePro } from '@/lib/purchases';
-import { clearHistory, FREE_AI_TEARDOWNS, getState, resolveQuery, shouldShowPaywall, startGeneration, useStore } from '@/lib/store';
+import { CAREER_TRACKS } from '@/lib/roadmap/content';
+import { clearHistory, FREE_AI_TEARDOWNS, getState, resolveQuery, setCareer, shouldShowPaywall, startGeneration, useStore } from '@/lib/store';
 
 const TRY_THESE = ['duolingo.com', 'linear.app', 'notion.so', 'txstate.edu', 'chatgpt.com', 'airbnb.com'];
 
@@ -16,7 +18,7 @@ const FEATURES: { icon: IconName; title: string; body: string; color: string }[]
   { icon: 'time-outline', title: 'Story', body: 'Who built it, when, and the milestones that shaped it', color: C.amber },
   { icon: 'layers-outline', title: 'Stack', body: 'Languages, frameworks and databases, explained simply', color: C.mint },
   { icon: 'git-network-outline', title: 'System map', body: 'Tap any box and watch a request travel through it', color: '#6EA8FF' },
-  { icon: 'code-slash-outline', title: 'Code', body: 'Readable snippets from each layer of the app', color: C.violet },
+  { icon: 'map-outline', title: 'Roadmap', body: 'Your path to building it, with real courses and videos', color: C.violet },
   { icon: 'color-wand-outline', title: 'Playground', body: 'Remix a rebuild of the real page, by code or by hand', color: C.pink },
 ];
 
@@ -25,6 +27,8 @@ export default function Home() {
   const { width } = useWindowDimensions();
   const [query, setQuery] = useState('');
   const history = useStore((s) => s.history);
+  const career = useStore((s) => s.career);
+  const careerTrack = CAREER_TRACKS.find((c) => c.id === career);
   const aiCount = useStore((s) => s.aiCount);
   const { isPro } = usePro();
   const cols = width >= 700 ? 3 : 2;
@@ -113,6 +117,37 @@ export default function Home() {
               <Txt style={styles.tryText}>{t}</Txt>
             </Pressy>
           ))}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Txt variant="label">What do you want to become?</Txt>
+            {careerTrack && (
+              <Pressy onPress={() => setCareer(null)}>
+                <Txt variant="small" style={{ color: C.textFaint }}>
+                  Change
+                </Txt>
+              </Pressy>
+            )}
+          </View>
+          {careerTrack ? (
+            <Card style={[styles.careerCard, { borderColor: `${careerTrack.color}77` }]}>
+              <Txt style={{ fontSize: 28 }}>{careerTrack.emoji}</Txt>
+              <View style={{ flex: 1 }}>
+                <Txt variant="heading" style={{ fontSize: 16 }}>
+                  Your path: {careerTrack.label}
+                </Txt>
+                <Txt variant="small">Open any app’s Roadmap tab to see how to build it on this path.</Txt>
+              </View>
+            </Card>
+          ) : (
+            <>
+              <Txt variant="dim" style={{ marginBottom: 12 }}>
+                Pick a path and every teardown gets a step-by-step roadmap with real courses, YouTube videos and practice.
+              </Txt>
+              <CareerPicker selected={career} onSelect={setCareer} />
+            </>
+          )}
         </View>
 
         {history.length > 0 && (
@@ -308,6 +343,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   featureCard: { padding: 14, marginBottom: 2 },
+  careerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
   featureIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   footnote: { marginTop: 32, color: C.textFaint, lineHeight: 18 },
 });
