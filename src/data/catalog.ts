@@ -82,3 +82,8 @@ export function findCurated(query: ParsedQuery): Teardown | undefined {
 export function getCurated(id: string): Teardown | undefined {
   return CURATED.find((t) => t.id === id);
 }
+
+/** Alternate names people type for a curated teardown, e.g. "insta" and "ig" for Instagram (search suggestions) */
+export function curatedAliases(id: string): string[] {
+  return ALIASES[id] ?? [];
+}

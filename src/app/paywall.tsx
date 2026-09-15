@@ -22,7 +22,8 @@ export default function Paywall() {
 
 function PaywallScreen() {
   const insets = useSafeAreaInsets();
-  const { q } = useLocalSearchParams<{ q?: string }>();
+  // `id`, `name` and `host` come with a teardown chosen on the home screen, whose id may not be what `q` parses to
+  const { q, id, name, host } = useLocalSearchParams<{ q?: string; id?: string; name?: string; host?: string }>();
   const { isPro } = usePro();
   const [offers, setOffers] = useState<ProOffer[] | null>(null);
   const [selected, setSelected] = useState(0);
@@ -39,10 +40,13 @@ function PaywallScreen() {
   }, []);
 
   function continueAfterUnlock() {
-    if (q) {
+    if (q && id) {
+      const started = startGeneration({ raw: q, host: host || null, id, displayName: name || q });
+      router.replace({ pathname: '/t/[id]', params: { id: started } });
+    } else if (q) {
       const result = resolveQuery(q);
-      const id = result.kind === 'generate' ? startGeneration(result.query) : result.id;
-      router.replace({ pathname: '/t/[id]', params: { id } });
+      const next = result.kind === 'generate' ? startGeneration(result.query) : result.id;
+      router.replace({ pathname: '/t/[id]', params: { id: next } });
     } else if (router.canGoBack()) {
       router.back();
     } else {

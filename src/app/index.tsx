@@ -1,15 +1,29 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  AccessibilityInfo,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+  type TextInputKeyPressEvent,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CareerPicker } from '@/components/career-picker';
+import { SearchSuggestions } from '@/components/search-suggestions';
 import { Card, Chip, GridBackground, Ionicons, LogoMark, Pressy, Txt, type IconName } from '@/components/ui';
 import { C, F, MaxWidth, visibleBrand } from '@/constants/theme';
-import { CURATED, getCurated } from '@/data/catalog';
+import { CURATED, getCurated, type ParsedQuery } from '@/data/catalog';
+import { QUICK_ENGINE_VERSION } from '@/lib/offline/build';
 import { PAYWALL_ENABLED, usePro } from '@/lib/purchases';
 import { CAREER_TRACKS } from '@/lib/roadmap/content';
-import { clearHistory, FREE_AI_TEARDOWNS, getState, resolveQuery, setCareer, shouldShowPaywall, startGeneration, useStore } from '@/lib/store';
+import { clearHistory, FREE_AI_TEARDOWNS, getState, setCareer, shouldShowPaywall, startGeneration, useStore } from '@/lib/store';
+import { useSuggestions } from '@/lib/suggest/client';
+import { curatedFor, isSpecificAddress, suggestionQuery, typedSuggestion } from '@/lib/suggest/local';
+import type { Suggestion } from '@/lib/suggest/types';
 
 const TRY_THESE = ['duolingo.com', 'linear.app', 'notion.so', 'txstate.edu', 'chatgpt.com', 'airbnb.com'];
 
@@ -21,6 +35,16 @@ const FEATURES: { icon: IconName; title: string; body: string; color: string }[]
   { icon: 'map-outline', title: 'Roadmap', body: 'Your path to building it, with real courses and videos', color: C.violet },
   { icon: 'color-wand-outline', title: 'Playground', body: 'Remix a rebuild of the real page, by code or by hand', color: C.pink },
 ];
+
+/** How long a blurred search box keeps its suggestions, so a tap on one still lands */
+const BLUR_GRACE_MS = 200;
+
+/** A saved teardown that reopens as is, by resolveQuery's rules: not built by an older engine, nothing failed */
+function reusableEntry(id: string): boolean {
+  const entry = getState().entries[id];
+  const stale = entry?.quick && entry.quick.version !== QUICK_ENGINE_VERSION;
+  return Boolean(entry && !stale && !Object.values(entry.parts).includes('error'));
+}
 
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -34,20 +58,163 @@ export default function Home() {
   const cols = width >= 700 ? 3 : 2;
   const freeLeft = Math.max(0, FREE_AI_TEARDOWNS - aiCount);
 
-  function submit(text: string) {
-    const value = text.trim();
-    if (!value) return;
-    const result = resolveQuery(value);
-    if (result.kind !== 'generate') {
-      router.push({ pathname: '/t/[id]', params: { id: result.id } });
-      return;
-    }
-    if (shouldShowPaywall(isPro)) {
-      router.push({ pathname: '/paywall', params: { q: value } });
-      return;
-    }
-    const id = startGeneration(result.query);
+  const [focused, setFocused] = useState(false);
+  // After Enter on a plain name the suggestions stay open until the student picks one
+  const [pinned, setPinned] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  // The row under the arrow keys or the mouse; only one picked with the keys opens on Enter
+  const [highlight, setHighlight] = useState<{ key: string; byKeys: boolean } | null>(null);
+  const inputRef = useRef<TextInput>(null);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pressingRow = useRef(false);
+  // Focus is on the search box, its button or a suggestion (Tab moves between them without closing the list)
+  const focusInside = useRef(false);
+  const { items, webLoading, webFailed } = useSuggestions(query);
+  const highlighted = highlight ? items.findIndex((s) => s.key === highlight.key) : -1;
+  const showSuggestions = query.trim().length > 0 && (focused || pinned) && !dismissed;
+
+  function closeSuggestions() {
+    setPinned(false);
+    setDismissed(true);
+    setHighlight(null);
+  }
+
+  function open(id: string) {
+    closeSuggestions();
+    inputRef.current?.blur();
     router.push({ pathname: '/t/[id]', params: { id } });
+  }
+
+  /** Starts a new teardown (or the paywall when the free ones are used up) */
+  function startTeardown(q: ParsedQuery) {
+    closeSuggestions();
+    inputRef.current?.blur();
+    if (shouldShowPaywall(isPro)) {
+      // The paywall starts exactly this teardown after unlocking (its id may be "zoom-com", not what the text parses to)
+      router.push({ pathname: '/paywall', params: { q: q.raw, id: q.id, name: q.displayName, host: q.host ?? '' } });
+      return;
+    }
+    const id = startGeneration(q);
+    router.push({ pathname: '/t/[id]', params: { id } });
+  }
+
+  /** A past teardown: reopens it, or rebuilds it under the same id when it's no longer saved */
+  function reopen(id: string, text: string, name: string) {
+    if (getCurated(id) || getState().entries[id]) {
+      open(id);
+      return;
+    }
+    const q = suggestionQuery(typedSuggestion(text), {});
+    if (q) startTeardown({ ...q, id, displayName: name });
+  }
+
+  function choose(s: Suggestion) {
+    pressingRow.current = false;
+    if (s.kind === 'recent') {
+      if (s.entryId) reopen(s.entryId, history.find((h) => h.id === s.entryId)?.query ?? s.domain ?? s.name, s.name);
+      return;
+    }
+    // A curated row, or a row or address on the curated site ("insta" as typed, twitter.com); x.ai is not the curated X
+    const curated = curatedFor(s);
+    if (curated) {
+      open(curated.id);
+      return;
+    }
+    const q = suggestionQuery(s, getState().entries);
+    if (!q) return;
+    if (reusableEntry(q.id)) open(q.id);
+    else startTeardown(q);
+  }
+
+  /** Enter or the arrow button: a row picked with the keys opens, a link opens its teardown, a name asks which one */
+  function go() {
+    const value = query.trim();
+    if (!value) return;
+    // A row the mouse happens to rest on doesn't count: Enter on a plain name must ask, not guess
+    const chosen = showSuggestions && highlight?.byKeys && highlighted >= 0 ? items[highlighted] : undefined;
+    if (chosen) {
+      choose(chosen);
+      return;
+    }
+    // A link opens the same teardown as its "as typed" row
+    if (isSpecificAddress(value)) {
+      choose(typedSuggestion(value));
+      return;
+    }
+    setPinned(true);
+    setDismissed(false);
+    AccessibilityInfo.announceForAccessibility(`Which “${value}” do you mean? Choose one of the suggestions.`);
+    // Clicking the arrow button blurs the box on web; keep it focused so the arrow keys still work
+    if (Platform.OS === 'web') inputRef.current?.focus();
+  }
+
+  function changeQuery(text: string) {
+    setQuery(text);
+    setPinned(false);
+    setDismissed(false);
+    setHighlight(null);
+  }
+
+  /** Web keyboard: arrows move through the suggestions, Enter chooses, Escape closes */
+  function onKeyPress(e: TextInputKeyPressEvent) {
+    if (Platform.OS !== 'web') return;
+    const { key, isComposing, keyCode } = e.nativeEvent as TextInputKeyPressEvent['nativeEvent'] & {
+      isComposing?: boolean;
+      keyCode?: number;
+    };
+    if (key === 'Escape') {
+      closeSuggestions();
+      return;
+    }
+    // Safari reports the Enter that confirms an input method's candidate as keyCode 229, not isComposing
+    if (key === 'Enter' && !isComposing && keyCode !== 229) {
+      // Handled here instead of onSubmitEditing, which would also blur the box
+      e.preventDefault();
+      go();
+      return;
+    }
+    if ((key !== 'ArrowDown' && key !== 'ArrowUp') || !query.trim() || !items.length) return;
+    e.preventDefault();
+    const current = showSuggestions ? highlighted : -1;
+    const next = key === 'ArrowDown' ? (current + 1) % items.length : current <= 0 ? items.length - 1 : current - 1;
+    setDismissed(false);
+    setHighlight({ key: items[next].key, byKeys: true });
+  }
+
+  /** Focus moved to the search box, its button or a suggestion: the list stays open */
+  function focusIn() {
+    clearTimeout(blurTimer.current);
+    focusInside.current = true;
+    setFocused(true);
+  }
+
+  /** Focus left one of them: the list closes unless focus lands on another one (or a row is being pressed) */
+  function focusOut() {
+    focusInside.current = false;
+    clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => {
+      if (!pressingRow.current && !focusInside.current) setFocused(false);
+    }, BLUR_GRACE_MS);
+  }
+
+  function onFocus() {
+    focusIn();
+    setDismissed(false);
+  }
+
+  /** A press on a suggestion keeps the list open even though the search box lost focus */
+  function rowPressIn() {
+    pressingRow.current = true;
+    clearTimeout(blurTimer.current);
+  }
+
+  /** ...and a press that didn't choose anything (dragged away) closes it like a normal blur */
+  function rowPressOut() {
+    clearTimeout(blurTimer.current);
+    blurTimer.current = setTimeout(() => {
+      pressingRow.current = false;
+      if (!focusInside.current) setFocused(false);
+    }, BLUR_GRACE_MS);
   }
 
   return (
@@ -88,32 +255,58 @@ export default function Home() {
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color={C.textDim} style={{ marginLeft: 14 }} />
           <TextInput
+            ref={inputRef}
             value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => submit(query)}
-            placeholder="instagram.com, Duolingo, linear.app…"
+            onChangeText={changeQuery}
+            onSubmitEditing={go}
+            onKeyPress={onKeyPress}
+            onFocus={onFocus}
+            onBlur={focusOut}
+            submitBehavior="submit"
+            placeholder="Zoom, Duolingo, linear.app…"
             placeholderTextColor={C.textFaint}
             autoCapitalize="none"
             autoCorrect={false}
-            returnKeyType="go"
+            returnKeyType="search"
+            accessibilityHint="Shows matching apps and websites to choose from"
             style={styles.searchInput}
           />
-          <Pressy onPress={() => submit(query)} style={styles.searchGo} accessibilityLabel="Tear it down">
+          <Pressy onPress={go} onFocus={focusIn} onBlur={focusOut} style={styles.searchGo} accessibilityLabel="Tear it down">
             <Ionicons name="arrow-forward" size={20} color={C.bg} />
           </Pressy>
         </View>
+        {showSuggestions && (
+          <SearchSuggestions
+            query={query}
+            items={items}
+            highlighted={highlighted}
+            webLoading={webLoading}
+            webFailed={webFailed}
+            pinned={pinned}
+            onChoose={choose}
+            onHighlight={(i) => setHighlight(items[i] ? { key: items[i].key, byKeys: false } : null)}
+            onPressIn={rowPressIn}
+            onPressOut={rowPressOut}
+            onRowFocus={focusIn}
+            onRowBlur={focusOut}
+          />
+        )}
         <View style={styles.searchMeta}>
           <Txt variant="small">
-            {!PAYWALL_ENABLED
-              ? 'Free · unlimited teardowns of any app or website'
-              : isPro
-              ? 'Pro · unlimited AI teardowns'
-              : `${freeLeft} free AI teardown${freeLeft === 1 ? '' : 's'} left · curated apps are always free`}
+            Type a name to see matching apps, or paste a link
+            <Txt variant="small" style={{ color: C.textFaint }}>
+              {' · '}
+              {!PAYWALL_ENABLED
+                ? 'Free · unlimited teardowns of any app or website'
+                : isPro
+                ? 'Pro · unlimited AI teardowns'
+                : `${freeLeft} free AI teardown${freeLeft === 1 ? '' : 's'} left · curated apps are always free`}
+            </Txt>
           </Txt>
         </View>
         <View style={styles.tryRow}>
           {TRY_THESE.map((t) => (
-            <Pressy key={t} onPress={() => submit(t)} style={styles.tryChip}>
+            <Pressy key={t} onPress={() => choose(typedSuggestion(t))} style={styles.tryChip}>
               <Txt style={styles.tryText}>{t}</Txt>
             </Pressy>
           ))}
@@ -162,14 +355,7 @@ export default function Home() {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
               {history.map((h) => (
-                <Pressy
-                  key={h.id}
-                  onPress={() =>
-                    getCurated(h.id) || getState().entries[h.id]
-                      ? router.push({ pathname: '/t/[id]', params: { id: h.id } })
-                      : submit(h.query ?? h.name)
-                  }
-                  style={styles.historyItem}>
+                <Pressy key={h.id} onPress={() => reopen(h.id, h.query ?? h.name, h.name)} style={styles.historyItem}>
                   <LogoMark glyph={h.glyph} color={h.color} size={30} />
                   <View>
                     <Txt style={{ fontFamily: F.displayMedium, fontSize: 14 }}>{h.name}</Txt>

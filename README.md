@@ -62,6 +62,9 @@ from 12:10 PM; the rest of the history is the hackathon work. Everything listed 
   part that fails falls back to the instant teardown.
 - **Teardown Pro paywall with the RevenueCat SDK** (`src/lib/purchases.ts`, `src/app/paywall.tsx`): offerings, purchase,
   restore, plus a local demo mode when no key is set. It is switched off by default (see below).
+- **Search that asks "which one?"**: typing a name lists every matching app and website, Teardown's own library first,
+  then real apps (App Store search) and websites (Clearbit, Wikidata) with icons and domains. Pressing Enter on a plain
+  name never guesses: it asks "Which “zoom” do you mean?" and you pick. Links still open directly.
 - **Runs on iOS, Android and web** from one Expo codebase, with a custom icon and a dark "blueprint" design.
 
 ## 🔭 Future ideas (not built yet)
@@ -112,6 +115,8 @@ npx tsx scripts/agent-battery.ts                   # built-in agent: 228 scripte
 npx tsx scripts/test-roadmap.ts                    # 9 career paths × 15 apps
 npx tsx scripts/verify-resources.ts                # checks every course/video/docs link is live
 node scripts/mock-anthropic-agent.mjs & npx tsx scripts/test-agent-api.ts   # Claude agent route against a mock API
+npx tsx scripts/test-suggest-local.ts              # search suggestions: matching, ranking, dedupe, chooser targets
+npx tsx scripts/test-suggest-web.ts                # web suggestions (App Store, Clearbit, Wikidata) with a fake fetch; --live for real
 npx tsx scripts/test-gemini-pages.ts               # free-tier Gemini: page discovery + URL Context (no key needed)
 npx tsx scripts/test-gemini-rotation.ts            # Gemini model rotation, quotas and overloads (no key needed)
 node scripts/mock-gemini.mjs & npx tsx scripts/test-gemini-teardown.ts        # Gemini teardown route (Google Search mode)
