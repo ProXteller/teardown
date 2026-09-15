@@ -42,7 +42,7 @@ gaps are still open in the **app**, and the submission copy is written around th
 | **"HAND-CHECKED" chip.** Home and the teardown header say HAND-CHECKED for all 14 curated apps. Eight (Facebook, YouTube, TikTok, X, Reddit, Amazon, Google, ChatGPT) were added between 2:01 and 2:12 PM today. | A judge who asks "who checked these?" needs a true answer. Submission copy now says "curated". | Either review them against their sources before recording, or relabel the chip CURATED. |
 | **No "not affiliated" line.** The app, video and deck show Instagram, Spotify and other product names. | Devpost rules bar third-party trademarks without permission. | Add one line to the home footnote: "Not affiliated with or endorsed by the companies whose products are explained." The video end card and deck already carry it. |
 | **README is stale.** It says six curated teardowns, and its "2-minute demo script" (linear.app, "hit the free limit") differs from ours. | Next Gen judges read the repo. | Update the count to 14 and point the demo section at `submission/demo-video-script.md`. |
-| **LICENSE names Expo, not you.** It's the template's MIT license, "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)". | Next Gen requires a visible open-source license on your repo. | Keep MIT, change the copyright line to `[year] [team names]`. |
+| ~~**LICENSE names Expo, not you.**~~ Done: MIT, copyright 2026 Yubraj Bajagain, Ankur Basnet, Sagar Neupane (Expo template line kept). | Next Gen requires a visible open-source license on your repo. | Nothing left. |
 | **University sites get a learning-app template.** `mobile.txst.edu` shows LIKELY items like "Spaced repetition" and flows like "You submit a quiz". | Visible in Shot 6 if you open AI / ML or System. | Don't open those in the demo. Longer term: a university archetype. |
 
 ---
@@ -289,7 +289,7 @@ Script: **`submission/demo-video-script.md`**.
 Content: **`submission/adobe-express-deck.md`** (10 slides with speaker notes).
 
 - [ ] Build the slides, place screenshots from block 4, and embed or link the video on slide 6.
-- [ ] Fill in team names and roles on slide 10. Confirm the Pro price on slide 9 matches RevenueCat.
+- [x] Team names on slide 10 (Yubraj Bajagain, Ankur Basnet, Sagar Neupane); add roles if you want. Confirm the Pro price on slide 9 matches RevenueCat.
 - [ ] Run the deck's "Before you export" checks (numbers, disclaimer, no user counts).
 - [ ] Share → **view link** (test it logged out) and Download → **PDF**.
 

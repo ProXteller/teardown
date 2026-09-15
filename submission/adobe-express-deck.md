@@ -38,7 +38,7 @@ the video.
 6°, with the search box showing `instagram.com, Duolingo, linear.app…`.
 
 **Speaker notes:**
-"Hi, we're [team]. This is Teardown. You type an app you use every day and it shows you how that app is built: its
+"Hi, we're Yubraj, Ankur and Sagar. This is Teardown. You type an app you use every day and it shows you how that app is built: its
 story, its tech stack, a map of its system you can tap, teaching code, and a playground where you can remix it."
 
 ---
@@ -239,7 +239,7 @@ licenses."
 - **Next:** classroom mode, "tear down my GitHub repo", share your remix
 
 **Body (right, team and ask):**
-- `[Name]`: `[role]` · `[Name]`: `[role]`
+- **Yubraj Bajagain** · **Ankur Basnet** · **Sagar Neupane** (add roles if you want, e.g. design, app, AI)
 - **Ask:** try it tonight, tell us which app you want torn down next, and connect us with an intro CS instructor for
   a pilot.
 

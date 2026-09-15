@@ -7,7 +7,7 @@ or tell to change things.
 
 Built at **TXST Shipaton 2026** (Texas State University, September 14, 2026), the local edition of RevenueCat Shipaton.
 
-**Team:** _Name 1_ · _Name 2_ · _Name 3_ · _Name 4_
+**Team:** Yubraj Bajagain · Ankur Basnet · Sagar Neupane
 
 | Home | System map | Ask Teardown edits the page | Career roadmap |
 | --- | --- | --- | --- |
