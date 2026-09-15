@@ -16,6 +16,8 @@ export interface ChatMessage {
   receipts?: string[];
   suggestions?: string[];
   source?: AgentReply['source'];
+  /** Web pages a live answer came from */
+  sources?: { title: string; url: string }[];
 }
 
 interface Chat {
@@ -50,7 +52,20 @@ export function welcomeSuggestions(t: Teardown) {
   return starterSuggestions(t);
 }
 
-async function askClaude(req: AgentRequest): Promise<AgentReply> {
+const UI_ACTIONS = new Set(['set_tweak', 'edit_text', 'set_playground_code', 'reset_playground', 'open_roadmap']);
+const LIVE_QUESTION = /\b(latest|recent(ly)?|now|today|current(ly)?|news|this year|20[2-3]\d|update[sd]?|still|anymore|ceo|how many (users|people|employees)|revenue|valuation|price|pricing|acquired|lawsuit|outage)\b/i;
+
+/**
+ * Free-tier friendly routing: playground edits, roadmaps and questions about hand-checked apps stay on the
+ * instant built-in agent; live questions and apps that weren't hand-checked go to the AI (which can search the web).
+ */
+function needsAi(t: Teardown, text: string, local: AgentReply) {
+  if (local.actions.some((a) => UI_ACTIONS.has(a.type))) return false;
+  if (LIVE_QUESTION.test(text)) return true;
+  return t.source !== 'curated';
+}
+
+async function askAi(req: AgentRequest): Promise<AgentReply> {
   const res = await fetch(apiUrl('/api/agent'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -77,11 +92,12 @@ export async function sendAgentMessage(t: Teardown, text: string): Promise<ChatM
   };
 
   let reply: AgentReply;
+  const local = runLocalAgent(req);
   try {
-    reply = (await aiAvailable()) ? await askClaude(req) : runLocalAgent(req);
+    reply = (await aiAvailable()) && needsAi(t, clean, local) ? await askAi(req) : local;
   } catch {
-    // Claude unreachable or out of credits: the built-in agent still answers
-    reply = runLocalAgent(req);
+    // AI unreachable or rate limited: the built-in agent still answers
+    reply = local;
   }
   if (reply.source === 'local') await new Promise((r) => setTimeout(r, 350)); // feels less abrupt than instant
 
@@ -94,6 +110,7 @@ export async function sendAgentMessage(t: Teardown, text: string): Promise<ChatM
     receipts,
     suggestions: reply.suggestions?.slice(0, 4),
     source: reply.source,
+    sources: (reply as AgentReply & { sources?: { title: string; url: string }[] }).sources?.slice(0, 5),
   };
   setChat(t.id, (c) => ({ messages: [...c.messages, assistant], thinking: false }));
   return assistant;

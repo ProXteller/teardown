@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
@@ -88,9 +89,9 @@ export function AgentDock({ t }: { t: Teardown }) {
                 </Txt>
               </View>
               {last?.source && (
-                <View style={[styles.sourcePill, last.source === 'claude' && { borderColor: `${C.violet}88` }]}>
-                  <Txt style={[styles.sourceText, last.source === 'claude' && { color: C.violet }]}>
-                    {last.source === 'claude' ? 'CLAUDE' : 'BUILT-IN'}
+                <View style={[styles.sourcePill, last.source !== 'local' && { borderColor: `${C.violet}88` }]}>
+                  <Txt style={[styles.sourceText, last.source !== 'local' && { color: C.violet }]}>
+                    {last.source === 'local' ? 'BUILT-IN' : String(last.source).toUpperCase()}
                   </Txt>
                 </View>
               )}
@@ -139,6 +140,7 @@ export function AgentDock({ t }: { t: Teardown }) {
                   ) : (
                     <Bubble key={m.id} role="assistant">
                       <Rich text={m.text} />
+                      <Sources message={m} />
                       <Receipts message={m} t={t} />
                     </Bubble>
                   ),
@@ -188,6 +190,23 @@ export function AgentDock({ t }: { t: Teardown }) {
 
 function Bubble({ role, children }: { role: 'user' | 'assistant'; children: ReactNode }) {
   return <View style={[styles.bubble, role === 'user' ? styles.userBubble : styles.botBubble]}>{children}</View>;
+}
+
+function Sources({ message }: { message: ChatMessage }) {
+  if (!message.sources?.length) return null;
+  return (
+    <View style={styles.sources}>
+      <Txt style={styles.sourcesLabel}>From the web</Txt>
+      {message.sources.map((s) => (
+        <Pressy key={s.url} onPress={() => WebBrowser.openBrowserAsync(s.url)} style={styles.sourceRow}>
+          <Ionicons name="link" size={12} color={C.cyan} />
+          <Txt style={styles.sourceLink} numberOfLines={1}>
+            {s.title || s.url.replace(/^https?:\/\/(www\.)?/, '')}
+          </Txt>
+        </Pressy>
+      ))}
+    </View>
+  );
 }
 
 function Receipts({ message, t }: { message: ChatMessage; t: Teardown }) {
@@ -323,6 +342,10 @@ const styles = StyleSheet.create({
   bold: { fontFamily: F.display },
   inlineCode: { fontFamily: F.mono, fontSize: 12.5, color: C.mint },
   receipts: { marginTop: 8, gap: 5 },
+  sources: { marginTop: 8, gap: 4 },
+  sourcesLabel: { fontFamily: F.monoBold, fontSize: 10, color: C.textFaint, letterSpacing: 0.8, textTransform: 'uppercase' },
+  sourceRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  sourceLink: { fontFamily: F.body, fontSize: 12.5, color: C.cyan, flexShrink: 1 },
   receipt: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   receiptText: { fontFamily: F.mono, fontSize: 11.5, color: C.mint, flexShrink: 1 },
   replay: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2, alignSelf: 'flex-start' },

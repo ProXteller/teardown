@@ -19,6 +19,7 @@ import { usePro } from '@/lib/purchases';
 import {
   recordVisit,
   resolveQuery,
+  retryLive,
   retryPart,
   shouldShowPaywall,
   startGeneration,
@@ -99,9 +100,9 @@ export default function TeardownScreen() {
                 <Ionicons name="chevron-back" size={20} color={C.text} />
               </Pressy>
               <Chip
-                label={t.source === 'curated' ? 'CURATED · HAND-CHECKED' : t.source === 'scan' ? 'INSTANT TEARDOWN' : 'AI TEARDOWN'}
-                color={t.source === 'curated' ? C.mint : t.source === 'scan' ? C.amber : C.violet}
-                icon={t.source === 'curated' ? 'shield-checkmark' : t.source === 'scan' ? 'flash' : 'sparkles'}
+                label={t.source === 'curated' ? 'CURATED · HAND-CHECKED' : entry?.live?.done.length ? `LIVE · ${entry.live.provider.toUpperCase()}` : t.source === 'scan' ? 'INSTANT TEARDOWN' : 'AI TEARDOWN'}
+                color={t.source === 'curated' ? C.mint : entry?.live?.done.length ? C.mint : t.source === 'scan' ? C.amber : C.violet}
+                icon={t.source === 'curated' ? 'shield-checkmark' : entry?.live?.done.length ? 'globe' : t.source === 'scan' ? 'flash' : 'sparkles'}
               />
             </View>
             <View style={styles.identity}>
@@ -123,7 +124,8 @@ export default function TeardownScreen() {
               {t.tagline}
             </Txt>
             {entry && generating && <Progress entry={entry} />}
-            {entry?.quick && !generating && <QuickBanner entry={entry} name={t.name} domain={t.url} />}
+            {entry?.live && !generating && <LiveBanner entry={entry} name={t.name} />}
+            {entry?.quick && !entry.live && !generating && <QuickBanner entry={entry} name={t.name} domain={t.url} />}
           </View>
         </View>
 
@@ -131,7 +133,7 @@ export default function TeardownScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBar}>
             {TABS.map((x) => {
               const on = x.key === tab;
-              const status = entry?.parts[x.part];
+              const status = entry?.live?.pending.includes(x.part) ? 'loading' : entry?.parts[x.part];
               return (
                 <Pressy key={x.key} onPress={() => setTab(x.key)} style={[styles.tab, on && { borderBottomColor: brand }]}>
                   {status === 'loading' ? (
@@ -186,6 +188,45 @@ function NextTab({ tab, onGo, color }: { tab: TabKey; onGo: (t: TabKey) => void;
       </View>
       <Ionicons name="arrow-forward-circle" size={30} color={color} />
     </Pressy>
+  );
+}
+
+const PART_TABS: Record<PartName, string> = { story: 'Story & Stack', system: 'System map', build: 'Code & Playground' };
+
+function LiveBanner({ entry, name }: { entry: Entry; name: string }) {
+  const live = entry.live!;
+  const engine = live.provider === 'gemini' ? 'Gemini + live web pages' : 'Claude';
+  const researching = live.pending.length > 0;
+  const total = live.done.length + live.pending.length + live.failed.length;
+  return (
+    <View style={[styles.quick, { backgroundColor: `${C.mint}10`, borderColor: `${C.mint}44` }]}>
+      {researching ? (
+        <ActivityIndicator size="small" color={C.mint} style={{ transform: [{ scale: 0.8 }], marginTop: -2 }} />
+      ) : (
+        <Ionicons name={live.failed.length ? 'alert-circle' : 'globe'} size={15} color={live.failed.length ? C.amber : C.mint} style={{ marginTop: 2 }} />
+      )}
+      <View style={{ flex: 1, gap: 4 }}>
+        <Txt style={{ fontFamily: F.displayMedium, fontSize: 13.5, color: C.text }}>
+          {researching
+            ? `Researching ${name} live · ${live.done.length}/${total} tabs updated`
+            : live.done.length
+              ? `Researched live with ${engine} · ${live.sources} source${live.sources === 1 ? '' : 's'}`
+              : 'Live research unavailable, showing the instant teardown'}
+        </Txt>
+        <Txt variant="small">
+          {researching
+            ? `You’re seeing the instant teardown now. ${engine} is reading the web and upgrades each tab as it finishes.`
+            : live.failed.length
+              ? `${live.failed.map((f) => PART_TABS[f.part]).join(', ')} kept instant data. ${live.failed[0].message}`
+              : `Facts come from pages read just now; tap Learn → Sources to check them. Anything unverified is marked LIKELY.`}
+        </Txt>
+        {!researching && live.failed.length > 0 && (
+          <Pressy onPress={() => retryLive(entry.id)} style={{ alignSelf: 'flex-start', marginTop: 2 }}>
+            <Txt style={{ fontFamily: F.displayMedium, fontSize: 12.5, color: C.cyan }}>Try live research again</Txt>
+          </Pressy>
+        )}
+      </View>
+    </View>
   );
 }
 

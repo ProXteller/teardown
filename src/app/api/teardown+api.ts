@@ -4,6 +4,8 @@ import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { BuildPart, PARTS, StoryPart, SystemPart, type PartName } from '@/data/schema';
 import { PLAYGROUND_CONTRACT } from '@/data/types';
 import type { ScanResult } from '@/lib/fingerprints';
+import { geminiErrorResponse, researchPart } from '@/lib/llm/research';
+import { aiProvider } from '@/lib/llm/provider';
 
 const MODEL = process.env.TEARDOWN_MODEL ?? 'claude-opus-5';
 const EFFORT = (process.env.TEARDOWN_EFFORT ?? 'medium') as 'low' | 'medium' | 'high';
@@ -49,21 +51,44 @@ Page structure (use it so the playground resembles the real page):
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as {
+  const body = ((await request.json().catch(() => ({}))) ?? {}) as {
     query?: string;
     part?: string;
     scan?: ScanResult | null;
   };
-  const query = body.query?.trim().slice(0, 200);
+  const query = typeof body.query === 'string' ? body.query.trim().slice(0, 200) : '';
   const part = body.part as PartName;
   if (!query || !PARTS.includes(part)) {
     return Response.json({ error: 'Expected { query, part: "story" | "system" | "build" }' }, { status: 400 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const provider = aiProvider();
+  if (!provider) {
     return Response.json(
-      { error: 'The AI engine isn’t configured yet. Add ANTHROPIC_API_KEY to .env and restart the dev server.', code: 'no_key' },
+      {
+        error:
+          'The AI engine isn’t configured yet. Add GEMINI_API_KEY (free at aistudio.google.com) or ANTHROPIC_API_KEY to .env and restart the dev server.',
+        code: 'no_key',
+      },
       { status: 503 },
     );
+  }
+
+  if (provider === 'gemini') {
+    // Live research: Gemini reads real pages found for this product (and Google Search on paid keys), grounded in the live scan
+    try {
+      const research = await researchPart(part, query, body.scan && typeof body.scan === 'object' ? body.scan : null);
+      return Response.json({
+        part,
+        data: research.data,
+        model: research.model,
+        provider: 'gemini',
+        sources: research.sources,
+        queries: research.queries,
+        researchedAt: research.researchedAt,
+      });
+    } catch (error) {
+      return geminiErrorResponse(error);
+    }
   }
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -99,7 +124,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return Response.json({ error: 'The AI returned an unexpected shape. Please retry.' }, { status: 502 });
     }
-    return Response.json({ part, data: parsed.data, model: message.model });
+    return Response.json({ part, data: parsed.data, model: message.model, provider: 'claude' });
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       return Response.json({ error: 'The Anthropic API key was rejected.', code: 'bad_key' }, { status: 401 });

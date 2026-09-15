@@ -30,8 +30,12 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (and editor backups like nano's .env.save, which can hold API keys)
 .env*.local
+.env.save
+.env.*.save
+.env.bak
+.env~
 
 # typescript
 *.tsbuildinfo

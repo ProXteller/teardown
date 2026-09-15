@@ -5,7 +5,7 @@
  * directly: it returns a reply plus a list of actions, and the app applies them in order.
  * Two engines implement it with the same inputs and outputs:
  *   - src/lib/agent/local-agent.ts  → instant, offline, rule-based (no API key needed)
- *   - src/app/api/agent+api.ts      → Claude with tools (used when ANTHROPIC_API_KEY is set)
+ *   - src/app/api/agent+api.ts      → Claude or Gemini with tools (used when ANTHROPIC_API_KEY or GEMINI_API_KEY is set)
  */
 
 import type { StackLayer, Teardown } from '@/data/types';
@@ -63,5 +63,7 @@ export interface AgentReply {
   actions: AgentAction[];
   /** 2–4 short follow-up prompts the user can tap */
   suggestions: string[];
-  source: 'local' | 'claude';
+  source: 'local' | 'claude' | 'gemini';
+  /** Web pages a live answer drew on (Gemini reading or searching the web), deduped, at most 5 */
+  sources?: { title: string; url: string }[];
 }

@@ -51,6 +51,13 @@ from 12:10 PM; the rest of the history is the hackathon work. Everything listed 
   - Checkable steps with mini projects and a capstone.
   - **274 learning resources** (courses, YouTube videos, docs, practice sites). Every link was checked by a script, with
     YouTube confirmed through oEmbed, and reviewed by hand.
+- **Live AI research with Google Gemini** (free tier) or Claude: instant teardown first, then each tab upgrades with
+  sourced, real-time facts; any failure keeps the instant version.
+  - The server finds real pages about the app in about a second: Wikipedia, its own About/Careers/Blog pages, its
+    GitHub organization (the languages its code really uses) and Hacker News engineering stories.
+  - Gemini reads those pages with its URL Context tool and writes the teardown from them, citing what it read.
+  - Model rotation spreads requests across several Gemini models, each with its own free per-minute quota.
+  - Google Search grounding can be switched on for billing-enabled keys (`GEMINI_GOOGLE_SEARCH=on`).
 - **Claude-generated teardowns** (with an API key): three parallel structured-output calls grounded in the live scan. Any
   part that fails falls back to the instant teardown.
 - **Teardown Pro paywall with the RevenueCat SDK** (`src/lib/purchases.ts`, `src/app/paywall.tsx`): offerings, purchase,
@@ -84,7 +91,14 @@ npx expo start
 - Press **w** for web, or scan the QR code with **Expo Go** on a phone on the same Wi-Fi.
 - The API routes (`src/app/api/*+api.ts`) run inside the Expo dev server, so there's no separate backend.
 - **No API key? Everything still works:** curated teardowns, instant teardowns, live scans, and the built-in Ask
-  Teardown agent. With a key, Claude writes teardowns and powers the agent.
+  Teardown agent.
+- **Live research (free):** put a free Google Gemini key in `.env` as `GEMINI_API_KEY` (get one at
+  [aistudio.google.com](https://aistudio.google.com)) and restart.
+  - Any search shows the instant teardown first, then Gemini reads real pages about the app and upgrades each tab.
+  - Sources are listed under Learn.
+  - Ask Teardown can read the app's Wikipedia article, site and sources for up-to-date answers, and lists them.
+  - Roadmaps add newly found courses and videos, each link checked before it's shown.
+  - Claude (`ANTHROPIC_API_KEY`) is supported too.
 
 ### Tests
 
@@ -98,6 +112,11 @@ npx tsx scripts/agent-battery.ts                   # built-in agent: 228 scripte
 npx tsx scripts/test-roadmap.ts                    # 9 career paths × 15 apps
 npx tsx scripts/verify-resources.ts                # checks every course/video/docs link is live
 node scripts/mock-anthropic-agent.mjs & npx tsx scripts/test-agent-api.ts   # Claude agent route against a mock API
+npx tsx scripts/test-gemini-pages.ts               # free-tier Gemini: page discovery + URL Context (no key needed)
+npx tsx scripts/test-gemini-rotation.ts            # Gemini model rotation, quotas and overloads (no key needed)
+node scripts/mock-gemini.mjs & npx tsx scripts/test-gemini-teardown.ts        # Gemini teardown route (Google Search mode)
+node scripts/mock-gemini-agent.mjs & npx tsx scripts/test-gemini-agent.ts     # Gemini agent loop (Google Search mode)
+npx tsx scripts/test-live-roadmap.ts               # live roadmap picks with real link checks
 ```
 
 ## RevenueCat (Teardown Pro)

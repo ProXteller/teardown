@@ -6,6 +6,7 @@ import { PARTS, type BuildPartT, type PartName, type StoryPartT, type SystemPart
 import type { Teardown, Tier } from '@/data/types';
 import type { ScanResult } from '@/lib/fingerprints';
 import type { TrackId } from '@/lib/roadmap/types';
+import { getWorkspace } from '@/lib/workspace';
 import { buildQuickTeardown, findKnownProduct, QUICK_ENGINE_VERSION, resolveDomain, type QuickMeta } from '@/lib/offline/build';
 import { engineReady, OFFLINE } from '@/lib/offline/content';
 import { PAYWALL_ENABLED } from '@/lib/purchases';
@@ -30,6 +31,27 @@ export interface Entry {
   quick?: QuickMeta;
   /** AI parts that failed and were filled in by the offline engine */
   fallbackParts?: PartName[];
+  /** Live AI research that upgrades the instant teardown in place, tab by tab */
+  live?: LiveResearch;
+}
+
+export interface LiveResearch {
+  provider: AiProviderName;
+  pending: PartName[];
+  done: PartName[];
+  failed: { part: PartName; message: string }[];
+  /** Web pages the research used */
+  sources: number;
+  researchedAt?: string;
+}
+
+export type AiProviderName = 'gemini' | 'claude';
+
+interface PartResponse {
+  data: StoryPartT | SystemPartT | BuildPartT;
+  provider?: AiProviderName;
+  sources?: { title: string; url: string }[];
+  researchedAt?: string;
 }
 
 export interface HistoryItem {
@@ -55,6 +77,11 @@ interface State {
 }
 
 export const FREE_AI_TEARDOWNS = 2;
+/**
+ * Tabs that live research upgrades. Code & Playground stay instant (the playground is already rebuilt from the
+ * real page), which keeps each teardown to 2 requests on Gemini's free tier (5 requests/minute per model).
+ */
+const LIVE_PARTS: PartName[] = ['story', 'system'];
 const STORAGE_KEY = 'teardown/v1';
 
 let state: State = { entries: {}, history: [], aiCount: 0, career: null, progress: {}, hydrated: false };
@@ -72,7 +99,7 @@ function persist() {
   clearTimeout(persistTimer);
   persistTimer = setTimeout(() => {
     const finished = Object.fromEntries(
-      Object.entries(state.entries).filter(([, e]) => PARTS.every((p) => e.parts[p] === 'done')),
+      Object.entries(state.entries).filter(([, e]) => PARTS.every((p) => e.parts[p] === 'done') && !e.live?.pending.length),
     );
     AsyncStorage.setItem(
       STORAGE_KEY,
@@ -87,7 +114,10 @@ export async function hydrate() {
     const saved = raw ? (JSON.parse(raw) as Partial<State>) : {};
     // Instant teardowns built by an older engine are dropped so they get rebuilt with better content
     const fresh = Object.fromEntries(
-      Object.entries(saved.entries ?? {}).filter(([, e]) => !e.quick || e.quick.version === QUICK_ENGINE_VERSION),
+      Object.entries(saved.entries ?? {})
+        .filter(([, e]) => !e.quick || e.quick.version === QUICK_ENGINE_VERSION)
+        // Research that was still running when the app closed won't resume
+        .map(([k, e]) => [k, e.live?.pending.length ? { ...e, live: { ...e.live, pending: [] } } : e]),
     );
     state = {
       entries: { ...fresh, ...state.entries },
@@ -221,15 +251,19 @@ function updateEntry(id: string, fn: (e: Entry) => Entry) {
   });
 }
 
-let aiStatus: Promise<boolean> | undefined;
+let aiStatus: Promise<{ ai: boolean; provider: AiProviderName | null }> | undefined;
 
-/** Asks the server once whether an AI key is configured. Unreachable server → offline mode. */
-export function aiAvailable(): Promise<boolean> {
+/** Asks the server once which AI engine is configured. Unreachable server → offline mode. */
+export function aiInfo(): Promise<{ ai: boolean; provider: AiProviderName | null }> {
   aiStatus ??= fetch(apiUrl('/api/status'))
     .then((r) => (r.ok ? r.json() : { ai: false }))
-    .then((j: { ai?: boolean }) => Boolean(j.ai))
-    .catch(() => false);
+    .then((j: { ai?: boolean; provider?: AiProviderName | null }) => ({ ai: Boolean(j.ai), provider: j.provider ?? null }))
+    .catch(() => ({ ai: false, provider: null }));
   return aiStatus;
+}
+
+export function aiAvailable(): Promise<boolean> {
+  return aiInfo().then((info) => info.ai);
 }
 
 /** Instant teardowns kept in memory so a failed AI part can fall back to them. */
@@ -283,16 +317,19 @@ async function runGeneration(id: string) {
       known,
     });
     quickCache.set(id, quick);
-    if (!(await aiAvailable())) {
-      updateEntry(id, (e) => ({
-        ...e,
-        teardown: quick.teardown,
-        parts: { story: 'done', system: 'done', build: 'done' },
-        quick: quick.meta,
-      }));
-      recordVisit(quick.teardown);
-      return;
-    }
+    const info = await aiInfo();
+    // Show the instant teardown right away; live research (if any) upgrades it tab by tab
+    updateEntry(id, (e) => ({
+      ...e,
+      teardown: quick.teardown,
+      parts: { story: 'done', system: 'done', build: 'done' },
+      quick: quick.meta,
+      live: info.ai && info.provider ? { provider: info.provider, pending: [...LIVE_PARTS], done: [], failed: [], sources: 0 } : undefined,
+    }));
+    recordVisit(quick.teardown);
+    if (!info.ai) return;
+    await Promise.all(LIVE_PARTS.map((part) => upgradePart(id, part, scan)));
+    return;
   }
 
   await Promise.all(PARTS.map((part) => runPart(id, part, scan)));
@@ -308,6 +345,71 @@ export function retryPart(id: string, part: PartName) {
     return;
   }
   void runPart(id, part, entry.scan);
+}
+
+/** Upgrades one tab of an instant teardown with live AI research; on failure the instant version stays. */
+async function upgradePart(id: string, part: PartName, scan: ScanResult | null) {
+  const entry = state.entries[id];
+  if (!entry?.live) return;
+  try {
+    const res = await postJSON<PartResponse>('/api/teardown', {
+      query: entry.domainGuessed ? entry.query : (entry.host ?? entry.query),
+      part,
+      scan,
+    });
+    updateEntry(id, (e) => {
+      if (!e.live) return e;
+      let data = res.data;
+      // Don't throw away a playground the student has already remixed
+      if (part === 'build' && getWorkspace(id).base === e.teardown.playground.html && getWorkspace(id).code !== undefined) {
+        data = { ...(data as BuildPartT), playground: e.teardown.playground };
+      }
+      const merged = normalize(merge(e.teardown, part, data));
+      const sources = mergeSources(merged.sources, res.sources ?? []);
+      const pending = e.live.pending.filter((p) => p !== part);
+      return {
+        ...e,
+        teardown: { ...merged, sources },
+        live: {
+          ...e.live,
+          provider: res.provider ?? e.live.provider,
+          pending,
+          done: [...e.live.done, part],
+          sources: sources.length,
+          researchedAt: pending.length === 0 ? (res.researchedAt ?? new Date().toISOString()) : e.live.researchedAt,
+        },
+      };
+    });
+    if (part === 'story') {
+      setState((s) => ({ ...s, aiCount: s.aiCount + 1 }));
+      const t = state.entries[id]?.teardown;
+      if (t) recordVisit(t);
+    }
+  } catch (err) {
+    const message = (err as Error).message;
+    updateEntry(id, (e) =>
+      e.live
+        ? { ...e, live: { ...e.live, pending: e.live.pending.filter((p) => p !== part), failed: [...e.live.failed.filter((f) => f.part !== part), { part, message }] } }
+        : e,
+    );
+  }
+}
+
+/** Tries the tabs that couldn't be researched live again (e.g. after a rate limit). */
+export function retryLive(id: string) {
+  const entry = state.entries[id];
+  if (!entry?.live?.failed.length) return;
+  const parts = entry.live.failed.map((f) => f.part);
+  updateEntry(id, (e) => (e.live ? { ...e, live: { ...e.live, failed: [], pending: [...e.live.pending, ...parts] } } : e));
+  parts.forEach((part) => void upgradePart(id, part, entry.scan));
+}
+
+function mergeSources(existing: Teardown['sources'], live: { title: string; url: string }[]): Teardown['sources'] {
+  const seen = new Set(existing.map((s) => s.url.replace(/\/$/, '')));
+  const added = live
+    .filter((s) => /^https?:\/\//.test(s.url) && !seen.has(s.url.replace(/\/$/, '')))
+    .map((s) => ({ label: s.title || new URL(s.url).hostname.replace(/^www\./, ''), url: s.url }));
+  return [...existing, ...added].slice(0, 16);
 }
 
 async function runPart(id: string, part: PartName, scan: ScanResult | null) {
