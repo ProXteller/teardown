@@ -4,15 +4,16 @@
 past that. RevenueCat's guide also asks the first two minutes to cover the elevator pitch, the core experience, the
 purchase experience **and the prize categories you're targeting**. This script does all four.
 
-**Voiceover: 222 spoken words** (acronyms and years counted as spoken, e.g. "C-S-S" is 3). At 150 words per minute
-that's about 89 seconds of talking, which leaves about 28 seconds for taps, typing (sped up) and animations. Every
-shot's lines fit inside its time box (see the budget table).
+**Voiceover: 220 spoken words** (acronyms and years counted as spoken, e.g. "C-S-S" is 3). At 150 words per minute
+that's about 88 seconds of talking, which leaves about 29 seconds for taps, typing (sped up) and animations. Every
+shot's lines fit inside its time box (see the budget table). The optional live-research **Shot 6B** has its own
+timing table and still ends at 1:57.
 
 Story arc: **curious about Instagram → understand it → ask about it → remix it → do it to a real TXST site → go Pro.**
 
-> **Gate (3:25 PM status):** Shot 4 needs the Ask Teardown button on the teardown screen. The built-in agent
-> (`src/lib/agent/local-agent.ts`) landed and typecheck passes, but `AgentDock` isn't mounted in
-> `src/app/t/[id].tsx` yet. If both demo prompts don't work in rehearsal after the 5:30 PM freeze, record **Shot 4B**.
+> **Gate (7 PM status):** Shot 4 needs the Ask Teardown button on the teardown screen. `AgentDock` is now rendered by
+> `src/app/t/[id].tsx`, and screenshots 04–05 were captured with it. If both demo prompts don't work in rehearsal,
+> record **Shot 4B**.
 
 ---
 
@@ -22,7 +23,8 @@ Story arc: **curious about Instagram → understand it → ask about it → remi
 | --- | --- | --- |
 | Device | Physical iPhone (best, since the rules ask for the app "running on intended device"), or the **iPhone 16 / iPhone 15 Pro simulator**, which is natively 1179×2556. Don't record the web build for the Devpost video. | Crisp portrait capture on the target platform |
 | `.env` | `EXPO_PUBLIC_PAYWALL_ENABLED=true` and `EXPO_PUBLIC_REVENUECAT_API_KEY=<Test Store key>` | Shows the real RevenueCat purchase flow |
-| `ANTHROPIC_API_KEY` | **Leave empty for the main take** | Instant teardowns build right away and the assistant answers immediately (**BUILT-IN** badge). With a key, `mobile.txst.edu` becomes a Claude teardown that can take up to a minute. |
+| `GEMINI_API_KEY` and `ANTHROPIC_API_KEY` | **Leave both empty for the main take** | Instant teardowns build right away with the amber "Built instantly" banner Shot 6 needs, and the assistant answers immediately (**BUILT-IN** badge). With a key, `mobile.txst.edu` shows the green live research banner instead, and its tabs change while you film. |
+| Optional Shot 6B | A **separate session** with `GEMINI_API_KEY` set. Reinstall the app (or Expo Go) first, restart Metro, and check that `curl http://localhost:8081/api/status` shows `"provider":"gemini"`. Afterwards remove the key, restart, and reinstall again before the main take. | A teardown the device already saved reopens without researching (**Clear** only empties the list). A finished live research also uses one of the 2 free AI teardowns, and the main take needs the no-key behavior. |
 | App state | On home, tap **Clear** under "Recently torn down". Delete and reinstall the app (or Expo Go) so the RevenueCat Test Store customer starts without Pro. | Clean first impression, paywall starts locked |
 | Status bar | `xcrun simctl status_bar booted override --time "9:41" --batteryState charged --batteryLevel 100` | No distracting clock or battery |
 | Touches | `defaults write com.apple.iphonesimulator ShowSingleTouches 1`, then restart Simulator | Viewers can see where you tap |
@@ -46,9 +48,22 @@ At 150 wpm you get 2.5 words per second. Each shot's voiceover stays well under 
 | 4 Ask Teardown | 0:32–0:54 | 22 | 38 | 15 s |
 | 5 Playground | 0:54–1:14 | 20 | 35 | 14 s |
 | 6 Live scan (TXST) | 1:14–1:36 | 22 | 40 | 16 s |
-| 7 Pro via RevenueCat | 1:36–1:50 | 14 | 26 | 10 s |
+| 7 Pro via RevenueCat | 1:36–1:50 | 14 | 24 | 10 s |
 | 8 Close + category | 1:50–1:57 | 7 | 13 | 5 s |
-| **Total** | **1:57** | | **222** | **89 s** |
+| **Total** | **1:57** | | **220** | **88 s** |
+
+**With optional Shot 6B (live research).** Pay for its 6 seconds by trimming Shot 3 (one autoplay step, drop "with
+every hop narrated") and Shot 6 (drop "Guesses are marked 'likely,' and", and move faster between tabs). Shots 1, 2,
+7 and 8 don't change.
+
+| Shot | Time box | Seconds | Words | Speaking time |
+| --- | --- | --- | --- | --- |
+| 3 System map (trimmed) | 0:17–0:29 | 12 | 27 | 11 s |
+| 4 Ask Teardown | 0:29–0:51 | 22 | 38 | 15 s |
+| 5 Playground | 0:51–1:11 | 20 | 35 | 14 s |
+| 6 Live scan (trimmed) | 1:11–1:30 | 19 | 35 | 14 s |
+| 6B Live research (Gemini) | 1:30–1:36 | 6 | 12 | 5 s |
+| **Total** | **1:57** | | **223** | **89 s** |
 
 ---
 
@@ -161,6 +176,31 @@ menu.
 > YouTube embeds (6 detections, 1.7 s scan), headline "Mobile Apps at Texas State". Scan results change when the
 > site changes. If the scan fails on venue Wi-Fi, use a backup take.
 
+### Shot 6B (optional, needs `GEMINI_API_KEY`) · 1:30–1:36 · Live research upgrades the teardown
+
+Record this clip in its own session with the key set (see the setup table). For real it takes about **20–60
+seconds**, so **cut the wait** in the edit. It shows the viewer what Pro sells right before the paywall.
+
+**Tap:** home → type `linear.app` → arrow.
+**Screen:** The instant teardown appears at once with the green banner **"Researching Linear live · 0/2 tabs
+updated"**, then 1/2 (hold about 1 s, then jump-cut past the wait). The banner changes to **"Researched live with
+Gemini + live web pages · N sources"** and the header chip reads **LIVE · GEMINI** (hold about 1 s).
+**Tap:** **Learn** tab → scroll to **Sources & further reading** and hold about 2 s on the pages Gemini read.
+
+**Voiceover (12 words):**
+> "With Gemini on, it researches the app live and cites real pages."
+
+**Caption:** `Live research · free Gemini tier · sources it actually read`
+
+> Sep 14 test runs: Gemini 3.8 Flash was out of its daily quota and 3.7 was overloaded, so the app rotated to 3.6
+> Flash, which answered a Linear teardown in about 22 s. Linear's sources were linear.app/about, /company, /careers
+> and github.com/linear. Results change with quotas and pages, so only narrate what your take shows. The server caches
+> finished research for a while, so a repeat search can finish before the banner is on camera, and a teardown saved on
+> the device reopens with no banner at all. Film on a freshly installed app, with an app you haven't researched since
+> the dev server started. If the banner ends with "Live research unavailable" or says a
+> tab kept instant data (rate limit or daily quota), wait a minute and tap **Try live research again**, or skip 6B
+> and use the main timing. Daily free quotas reset at midnight Pacific time.
+
 ### Shot 7 · 1:36–1:50 · Pro paywall via RevenueCat
 
 **Tap:** back → home → **GO PRO** pill (top right).
@@ -172,7 +212,7 @@ Hold 1 s on the pill.
 
 **Voiceover:**
 > "Curated teardowns are free, and so are your first two AI teardowns. Teardown Pro, a RevenueCat subscription,
-> unlocks unlimited AI teardowns by Claude."
+> unlocks unlimited AI teardowns."
 
 **Caption:** `Teardown Pro · RevenueCat`
 
@@ -207,8 +247,12 @@ For the TXST local cut, say "Teardown, built at TXST Shipaton." instead (8 spoke
    itself, down to the line. Change the code, and the screen updates.
 6. Now any link, like Texas State's mobile site. Teardown scans the real site and shows the evidence: Apache, jQuery,
    HTTPS enforced. Guesses are marked "likely," and the playground is rebuilt from the page's real headings.
+   *(Optional 6B: With Gemini on, it researches the app live and cites real pages.)*
 7. Curated teardowns are free, and so are your first two AI teardowns. Teardown Pro, a RevenueCat subscription,
-   unlocks unlimited AI teardowns by Claude.
+   unlocks unlimited AI teardowns.
+
+If you use 6B, read line 3 without "with every hop narrated" and line 6 as "…HTTPS enforced. The playground is
+rebuilt from the page's real headings."
 8. Teardown, for the Next Gen Award. See how any app is actually built.
 
 ## Backup takes
@@ -217,9 +261,13 @@ For the TXST local cut, say "Teardown, built at TXST Shipaton." instead (8 spoke
   Google Analytics; headline "Texas State University") and say "like Texas State's website." Or use `notion.so`
   (Cloudflare, Vercel and Next.js from headers, plus 8 more detections) and say "shows the evidence: Next.js, Vercel,
   Cloudflare."
-- **Want the Claude badge on screen:** record an extra 4-second clip of Shot 4 with `ANTHROPIC_API_KEY` set so the
-  assistant header shows **CLAUDE**. Cut out the wait. Don't record Shot 6 with the key set, because it turns into a
-  slow AI teardown.
+- **Want the GEMINI pill in Ask Teardown:** in the Shot 6B session (key set), open **Spotify** and ask `Who is the CEO
+  of Spotify right now, and how many monthly users?`. In a Sep 14 test it answered in about 22 s, naming the co-CEOs
+  and monthly users, with newsroom.spotify.com/company-info and Spotify's Wikipedia article under **From the web**.
+  Cut the wait and only narrate what the reply shows. Shot 4's Instagram prompts stay **BUILT-IN** even with a key
+  (Instagram is curated, and playground edits always use the built-in engine). With only `ANTHROPIC_API_KEY` set,
+  the pill reads **CLAUDE** instead. Don't record Shot 6 with a key set, because the amber "Built instantly" banner
+  turns into the live research banner.
 - **Running long:** cut Shot 2's scroll to 7 s and drop "with every hop narrated." (saves about 2 s).
 
 ---

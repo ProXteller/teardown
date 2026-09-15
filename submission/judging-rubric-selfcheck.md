@@ -7,6 +7,12 @@ screenshots.
 
 Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = best in the room.
 
+> **Update, Sep 14, 7 PM.** Two things landed after this pass. Ask Teardown is now on screen (`AgentDock` is rendered
+> by `src/app/t/[id].tsx`, and screenshots 04–05 exist), so improvement 1 is done apart from rehearsing the prompts.
+> And **free live research with Google Gemini** was built: instant teardown first, then Story & Stack and System map
+> upgrade in place from real pages Gemini reads, with a **LIVE · GEMINI** chip and sources. The scores below are still
+> the 3:20 PM read. Items marked *(7 PM)* say what changed.
+
 | Criterion | Now | After the 3 fixes below | One-line reason |
 | --- | --- | --- | --- |
 | Ingenuity | **4** | 4.5 | Typing on a rendered page rewrites its source, and a live scan with evidence feeds an instant teardown of any site. The headline assistant isn't on screen yet. |
@@ -28,14 +34,20 @@ Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = b
   headings.
 - **Epistemic labeling as a feature.** CONFIRMED vs LIKELY badges, "we assumed the site is X.com" and example
   labels teach students to separate evidence from inference, including for AI output.
-- **Agent design.** One typed action contract with two interchangeable engines (rule-based and Claude tool use)
-  means the assistant can drive the UI without touching it directly.
+- **Agent design.** One typed action contract with interchangeable engines (rule-based, plus Gemini function calling
+  or Claude tool use *(7 PM)*) means the assistant can drive the UI without touching it directly.
+- *(7 PM)* **Live research on a free key.** Google Search grounding refuses free keys, so the server finds real pages
+  itself in about a second (Wikipedia, the product's About/Company/Careers/Blog pages, its GitHub organization, Hacker
+  News) and Gemini reads them with URL Context. Rotation across Gemini models keeps it working when one is out of
+  quota: today 3.8 Flash was out of daily quota and 3.7 was overloaded, and 3.6 Flash answered a Linear teardown in
+  about 22 s. Linear's live research named its three founders and its local-first sync engine, with sources from
+  linear.app/about, /company, /careers and github.com/linear.
 
 **What holds it back**
 - The individual pieces have precedents (Wappalyzer-style fingerprinting, CodePen-style playgrounds, system-design
   diagrams). The originality is the combination for beginners, so the demo has to show them connected.
-- Ask Teardown, the most novel interaction, is built (`agent-dock.tsx`, `local-agent.ts`) but not rendered on the
-  teardown screen, so judges can't see it yet.
+- ~~Ask Teardown, the most novel interaction, is built but not rendered on the teardown screen.~~ *(7 PM: resolved,
+  it's mounted.)*
 
 ## Striking design: 4/5
 
@@ -46,6 +58,9 @@ Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = b
   moving along the active hop, and a narration card with step controls.
 - The playground sits in a phone frame with a live toast that names the changed line, and color carries meaning
   across the app (mint CONFIRMED, amber LIKELY and Pro, violet AI).
+- *(7 PM)* Live research never blocks the screen: the amber instant banner gives way to a mint "Researching … live ·
+  n/2 tabs updated" banner, tabs show a small spinner while they upgrade, and the header chip turns to **LIVE ·
+  GEMINI**.
 
 **What holds it back**
 - Story, Stack and Learn are mostly stacked text cards. Strong for learning, less arresting in a 2-second glance.
@@ -60,12 +75,20 @@ Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = b
   contract.
 - Layered failure handling: `normalize()` repairs model output, each AI part falls back to the instant engine, the
   assistant falls back to the built-in engine, and the scanner has a 7 s timeout and a 600 KB cap.
+- *(7 PM)* Live research adds more layers: the instant teardown is always shown first, a rate-limited, out-of-quota
+  or overloaded (503) Gemini model is skipped for the next one, Gemini's JSON is schema-validated, and roadmap picks
+  are link-checked on the server (HTTP plus YouTube oEmbed) with broken or unrelated ones dropped. Keys stay
+  server-side, fetched page text is fenced as untrusted data, and the server only reaches public https hosts.
 - RevenueCat is wired properly: current offering, `purchasePackage`, `restorePurchases`, a customer-info listener, and
   a labeled demo mode.
 
 **What a skeptical judge will find**
-- **Ask Teardown isn't mounted** in `src/app/t/[id].tsx`, yet it's the first feature card on the home screen ("An
-  AI guide that explains anything and edits the app for you").
+- ~~**Ask Teardown isn't mounted** in `src/app/t/[id].tsx`.~~ *(7 PM: resolved.)*
+- *(7 PM)* **Free Gemini quota is thin.** Gemini 3.8 Flash allows 5 requests a minute and 20 a day on the free tier.
+  Rotation helps, but a busy judging hour can still leave new searches on the instant version. Keep a finished LIVE
+  teardown saved.
+- *(7 PM)* The home footnote in `src/app/index.tsx` still says AI teardowns come "by Claude when an API key is
+  configured", with no mention of Gemini.
 - **Paywall perks oversell Pro.** "Live site scans", "Every playground" and "Saved on your device" are free for
   everyone.
 - **"HAND-CHECKED" on all 14 curated teardowns**, while 8 were added between 2:01 and 2:12 PM today.
@@ -88,7 +111,8 @@ Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = b
 **What holds it back**
 - Nothing is produced yet: no video, deck, screenshots or thumbnail.
 - **Pro's value is never on screen.** The video records without an AI key, so viewers buy "unlimited AI teardowns"
-  without ever seeing one.
+  without ever seeing one. *(7 PM: the script's optional Shot 6B fixes this with a 6-second live research clip,
+  banner → LIVE · GEMINI → Learn → Sources, right before the paywall.)*
 - Impact is a design goal ("a mental model in one sitting") with no evidence from real students yet. Even two
   classmates' reactions tonight would give slide 8 something real.
 
@@ -99,6 +123,8 @@ Scale: 1 = missing, 2 = weak, 3 = solid but with visible gaps, 4 = strong, 5 = b
 Ranked by points gained per hour. The first two need the lead and should land before the **5:30 PM feature freeze**.
 
 ### 1. Put Ask Teardown on screen and prove the two demo prompts (lead, about 45 min)
+
+*(7 PM: mounted, and screenshots 04–05 were captured. Only the rehearsal check below is left.)*
 
 **Moves:** Ingenuity +0.5, Execution +0.5, and unblocks video Shot 4, screenshots 04–05 and
 `scripts/screenshots.mjs`.
@@ -116,12 +142,13 @@ Ranked by points gained per hour. The first two need the lead and should land be
 **Moves:** Execution +0.5, Storytelling +0.5, and Next Gen's "RevenueCat integration thoughtfulness".
 
 - Replace the three free perks in `src/app/paywall.tsx` with what Pro actually adds ("Unlimited AI teardowns" plus,
-  for example, "Claude-written story, system map and playground for any site"). One true perk beats four padded ones.
-- Show the thing being sold: with the key set, record a 3-second clip of an AI teardown's progress chips filling in
-  (Story & stack → System map → Code & playground) and drop it right before the paywall in Shot 7. Pay for it by
-  trimming Shot 3 by 3 s (let one step autoplay instead of two, and drop "with every hop narrated").
-- In live judging, keep one finished AI teardown in "Recently torn down" so you can open it and point at the **AI
-  TEARDOWN** chip.
+  for example, "Live research: story, stack and system map from real pages, with sources"). One true perk beats four
+  padded ones.
+- Show the thing being sold: with `GEMINI_API_KEY` set, record the script's optional **Shot 6B** (banner "Researching
+  Linear live · n/2 tabs updated" → **LIVE · GEMINI** → Learn → Sources, wait cut out) and place it right before the
+  paywall. The script's 6B timing table pays for it by trimming Shots 3 and 6.
+- In live judging, keep one finished live teardown (e.g. `linear.app`) saved so you can open it and point at the
+  **LIVE · GEMINI** chip and its sources.
 
 ### 3. Trust pass on everything a judge can open (anyone, about 20 min)
 

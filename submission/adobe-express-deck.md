@@ -4,9 +4,13 @@ Ten slides, about 4 minutes spoken, or 2:30 if you let the demo video carry the 
 **vision, impact, app screenshots and a demo video**. Slides 5 and 6 are the screenshot slides, and slide 6 embeds
 the video.
 
-> Fact-checked against the code on Sep 14, 3:15 PM. **Ask Teardown gate:** slide 5 and the slide 7 side box show the
-> assistant, which isn't on the teardown screen yet. If it isn't working by the 5:30 PM freeze, swap slide 5's second
-> screenshot for the Code tab and cut the assistant lines from slides 5, 6 and 7.
+> Fact-checked against the code on Sep 14, 3:15 PM. Live research with Google Gemini (slides 5, 7, 8 and 9) was added
+> and checked at 7 PM. **Ask Teardown gate:** the assistant is now on the teardown screen (`AgentDock` is rendered by
+> `src/app/t/[id].tsx`). If either demo prompt fails in rehearsal, swap slide 5's second screenshot for the Code tab
+> and cut the assistant lines from slides 5, 6 and 7.
+>
+> **Built vs. future:** everything on slides 4–9 was built during the hackathon (Sep 14). Only slide 10 is future
+> work. Don't say live research uses Google Search: on the free tier Gemini reads the pages we find with URL Context.
 
 ## Look and feel (set once in Adobe Express)
 
@@ -115,7 +119,9 @@ from public sources or just likely. We want students to learn the difference bet
 "Here's the System tab for Instagram. I tap 'You post a photo' and the packet walks through each hop:
 load balancer, Django servers, photo storage, then a background queue. It's a simplified version of the
 architecture Instagram has described publicly. If I'm stuck I ask Teardown. It doesn't just answer. It drives the app
-and plays that request for me. A built-in engine answers with no API key, and it uses Claude when a key is set."
+and plays that request for me. A built-in engine answers with no API key. With a free Google Gemini key it can also
+read the web for live questions, like who runs the company right now, and it lists the pages it used. Claude works
+too."
 
 ---
 
@@ -151,19 +157,29 @@ real menu and headings as a playground I can edit."
 **Body:** a left-to-right diagram built with Express shapes:
 
 `Search` → `Curated? (14 teardowns)` → **yes:** `Teardown`
-`Search` → **no:** `Live scan (104 fingerprint rules, evidence kept)` → `Instant engine: 105 known products · 14 archetypes · 74 tech packs` → `Teardown built in milliseconds once the scan returns`
-With an API key: `Claude Opus 5 · 3 parallel structured-output calls, grounded in the scan` → `Teardown` (any failed part falls back to instant)
-Side box: `Ask Teardown · built-in engine or Claude tool use → typed UI actions`
-Footer: `Expo SDK 57 · Expo Router API routes · react-native-svg · WebView / iframe bridge · RevenueCat`
+`Search` → **no:** `Live scan (104 fingerprint rules, evidence kept)` → `Instant engine: 105 known products · 14 archetypes · 74 tech packs` → `Instant teardown on screen in milliseconds once the scan returns`
+With an AI key, the instant teardown then **upgrades in place** (Story & Stack, System map). Two paths:
+- **Gemini, free (preferred):** `Find real pages in ~1 s: Wikipedia · About/Company/Careers/Blog · GitHub org · Hacker News` → `Gemini reads them with URL Context → schema-validated JSON` → `LIVE · GEMINI chip + sources it actually read` (model rotation across the Flash and Flash-Lite models)
+- **Claude, optional:** `Claude Opus 5 · structured outputs, grounded in the scan`
+- Either path: any failure keeps the instant version.
 
-**Visual:** The diagram above. Cyan boxes for the free path, violet for Claude, amber for RevenueCat.
+Side box: `Ask Teardown · built-in engine, Gemini function calling (+ URL Context for live questions) or Claude tool use → typed UI actions`
+Footer: `Expo SDK 57 · Expo Router API routes · react-native-svg · WebView / iframe bridge · Google Gemini + Claude · RevenueCat`
+
+**Visual:** The diagram above. Cyan boxes for the no-key path, mint for Gemini live research (the app's LIVE color),
+violet for Claude, amber for RevenueCat. Small tag in a corner: `Built at TXST Shipaton · Sep 14`.
 
 **Speaker notes:**
 "Under the hood, it's one Expo app with API routes. A live scan reads the site's headers and HTML and keeps the
 evidence. Our offline engine combines that with documented facts, 14 product archetypes and 74 tech packs to build
-a full teardown a few milliseconds after the scan returns, with no AI needed. With a key, Claude Opus 5 writes a deeper
-teardown in three parallel calls with strict schemas, grounded in the scan. The assistant returns the same small set
-of typed actions whether the built-in engine or Claude is answering, and the app skips any id it doesn't recognize."
+a full teardown a few milliseconds after the scan returns, with no AI needed, so you always see something right away.
+With a free Gemini key, the server then finds real pages about the app in about a second: Wikipedia, its own About and
+Careers pages, its GitHub organization and Hacker News. Gemini reads those pages with its URL Context tool and writes
+schema-checked JSON, and the Story and System tabs upgrade in place. The sources are the pages it actually retrieved.
+Each Gemini model has its own free quota, so we rotate to another model when one is rate limited or overloaded.
+Claude still works as the other engine, and any failure keeps the instant version. The assistant returns the same
+small set of typed actions whether the built-in engine, Gemini or Claude is answering, and the app skips any id it
+doesn't recognize."
 
 ---
 
@@ -173,7 +189,8 @@ of typed actions whether the built-in engine or Claude is answering, and the app
 **Headline:** From "how does that work?" to a mental model in one sitting
 **Body:** three cards:
 - **Curiosity → concepts.** Every teardown ends with interview-ready terms and a build-your-own roadmap.
-- **Evidence literacy.** CONFIRMED vs LIKELY teaches students to question sources, including AI.
+- **Evidence literacy.** CONFIRMED vs LIKELY, plus the real pages live research cites, teach students to question
+  sources, including AI.
 - **Free core, no API key.** No account needed. Curated teardowns work with no connection, and every search still
   gets a teardown when AI is unavailable, so cost and campus Wi-Fi don't get in the way.
 
@@ -194,16 +211,18 @@ challenges completed and teardowns per session."
 **Headline:** Teardown Pro, powered by RevenueCat
 **Body:**
 - **Free:** 14 curated teardowns, playgrounds, Ask Teardown, and 2 AI teardowns to try
-- **Pro:** unlimited AI teardowns written by Claude, a monthly subscription at `[$2.99]/month`
-- AI costs real money per teardown. When AI is unavailable, the offline engine still builds a free instant teardown.
+- **Pro:** unlimited AI teardowns (live research with Gemini, or Claude), a monthly subscription at `[$2.99]/month`
+- Free Gemini quotas are small and Claude bills per call, so AI at scale costs money. Without AI, the offline engine
+  still builds a free instant teardown.
 
 **Visual:** The paywall screenshot ("Teardown Pro · Curious about everything?") next to a small RevenueCat diagram:
 `pro` entitlement → current offering → monthly package.
 
 **Speaker notes:**
 "The business model follows our costs. Curated teardowns, the playground and the assistant are free, because they
-cost us almost nothing to serve. AI teardowns cost real money every time, so after two free ones they're part of
-Teardown Pro. RevenueCat handles the subscription, the `pro` entitlement and restores through one SDK, so the app has a
+cost us almost nothing to serve. Live AI research runs on Gemini's free tier tonight, but a free key only gets a small
+daily quota (Gemini 3.8 Flash allows 20 requests a day), and Claude bills per call. At scale every AI teardown costs
+money, so after two free ones they're part of Teardown Pro. RevenueCat handles the subscription, the `pro` entitlement and restores through one SDK, so the app has a
 single Pro check on every platform. Tonight's demo uses RevenueCat's Test Store. Later we see campus and classroom
 licenses."
 
@@ -241,5 +260,8 @@ introduce us. Thank you. Teardown: see how any app is actually built."
 - [ ] No user or download numbers anywhere
 - [ ] A small "Not affiliated with the companies whose products are explained" line on slide 1 or 10
 - [ ] Every number matches the code: 14 curated, 104 fingerprint rules, 105 known products, 14 archetypes, 74 tech packs
+- [ ] Live research wording is right: free Gemini reads the pages we find with URL Context. Google Search grounding
+      is only an opt-in for billing-enabled keys, so it's not on any slide. Claude is labeled optional.
+- [ ] Nothing on slides 4–9 is a future idea. Future work stays on slide 10.
 - [ ] Video embedded or linked on slide 6, and the link works in a private window
 - [ ] Export: Share → Download → PDF (for the form) and keep the Express link (view access) for judges

@@ -238,8 +238,9 @@ export default function Home() {
 
         <Txt variant="small" style={styles.footnote}>
           Curated teardowns are written from public engineering blogs, talks and Wikipedia. Everything else is built from a
-          live scan of the site, verified facts where we have them, and how that kind of product is usually engineered (or
-          by Claude when an API key is configured). Anything unverified is marked “likely”.
+          live scan of the site, verified facts where we have them, and how that kind of product is usually engineered. With
+          an AI key, Gemini (free) or Claude then researches it live from real pages and lists its sources. Anything
+          unverified is marked “likely”.
         </Txt>
       </View>
     </ScrollView>
