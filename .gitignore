@@ -51,3 +51,8 @@ example
 
 # local dev preview config
 .claude/launch.json
+
+# Local-only: editor/assistant settings and the team's submission prep notes (deck script, checklists, pitch)
+.claude/
+submission/*
+!submission/screenshots/

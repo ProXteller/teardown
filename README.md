@@ -166,7 +166,7 @@ src/data/curated/          14 curated teardowns
 src/lib/offline/           instant engine: templates, tech packs, known products, real-page playground
 src/lib/agent/             agent contract, built-in engine, chat store
 src/lib/roadmap/           career roadmap engine; tracks in src/data/careers.ts, resources in src/data/resources/
-submission/                Shipaton submission kit (deck text, demo script, screenshots)
+submission/screenshots/    app screenshots (regenerate with node scripts/screenshots.mjs)
 ```
 
 ## Honesty notes
