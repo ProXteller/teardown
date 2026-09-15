@@ -17,6 +17,7 @@ import type { PartName } from '@/data/schema';
 import type { TabKey } from '@/lib/agent/types';
 import { usePro } from '@/lib/purchases';
 import {
+  ensureLive,
   recordVisit,
   resolveQuery,
   retryLive,
@@ -70,6 +71,12 @@ export default function TeardownScreen() {
     if (t && t.source === 'curated') recordVisit(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t?.id]);
+
+  // A saved instant teardown (e.g. from before an AI key was added) gets its live research when reopened
+  const canResearch = Boolean(entry?.quick) && !Object.values(entry?.parts ?? {}).includes('loading');
+  useEffect(() => {
+    if (canResearch) void ensureLive(id);
+  }, [id, canResearch]);
 
   // When the agent changes something, bring the panel into view
   useEffect(() => {

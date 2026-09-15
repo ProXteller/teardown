@@ -395,6 +395,35 @@ async function upgradePart(id: string, part: PartName, scan: ScanResult | null) 
   }
 }
 
+const livePartsToResearch = (entry: Entry) =>
+  LIVE_PARTS.filter((p) => !entry.live || (!entry.live.done.includes(p) && !entry.live.pending.includes(p) && !entry.live.failed.some((f) => f.part === p)));
+
+/**
+ * Starts live research for a saved instant teardown that never got it: saved before an AI key was added, or closed
+ * mid-research. Tabs that failed wait for the Retry button instead (they're usually rate limited).
+ */
+export async function ensureLive(id: string) {
+  const entry = state.entries[id];
+  if (!entry?.quick || Object.values(entry.parts).some((st) => st === 'loading') || !livePartsToResearch(entry).length) return;
+  const info = await aiInfo();
+  const current = state.entries[id];
+  if (!info.ai || !info.provider || !current) return;
+  const parts = livePartsToResearch(current);
+  if (!parts.length) return;
+  updateEntry(id, (e) => ({
+    ...e,
+    live: {
+      provider: info.provider!,
+      pending: [...(e.live?.pending ?? []), ...parts],
+      done: e.live?.done ?? [],
+      failed: e.live?.failed ?? [],
+      sources: e.live?.sources ?? 0,
+      researchedAt: e.live?.researchedAt,
+    },
+  }));
+  parts.forEach((part) => void upgradePart(id, part, current.scan));
+}
+
 /** Tries the tabs that couldn't be researched live again (e.g. after a rate limit). */
 export function retryLive(id: string) {
   const entry = state.entries[id];

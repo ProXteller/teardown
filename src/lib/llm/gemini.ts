@@ -295,7 +295,9 @@ export async function callGemini(
       return await withSlot(() => geminiClient().models.generateContent({ model, contents, config: withDefaults(model, config) }));
     } catch (e) {
       lastError = e;
-      if (process.env.GEMINI_DEBUG) {
+      // Quota and overload failures are routine; anything else is logged (status and upstream text, never the key) to diagnose
+      const routine = e instanceof ApiError && (e.status === 429 || e.status >= 500);
+      if (process.env.GEMINI_DEBUG || !routine) {
         const status = e instanceof ApiError ? e.status : e instanceof Error ? e.name : 'error';
         console.warn(`[gemini] ${model} failed after ${((Date.now() - started) / 1000).toFixed(1)}s: ${status} ${(e instanceof Error ? e.message : '').slice(0, 200)}`);
       }
